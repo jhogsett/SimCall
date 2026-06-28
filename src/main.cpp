@@ -38,7 +38,7 @@ bool begin_keypad(I2CKeyPad& keypad, const char * keymap){
     return false;
   }
 
-  keyPad.loadKeyMap(const_cast<char *>(keymap));
+  keypad.loadKeyMap(const_cast<char *>(keymap));
   return true;
 }
 
@@ -192,7 +192,7 @@ enum Outcomes{
 
 Outcomes outcome;
 
-int determine_outcome(const char * pressed_digits, int8_t num_digits){
+Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
   switch(pressed_digits[num_digits-1]){
     case '1':
       return outcome = OUTCOME_BUSY;
