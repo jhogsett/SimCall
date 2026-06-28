@@ -7,28 +7,7 @@
 #include <random_seed.h>
 #include "hook_light.h"
 #include "tones.h"
-#include "dtmf.h"
 
-// +----------+--------------------+-------------------------+
-// | Keypad   | MF Signaling Tone  | Frequency Pair (Hz)     |
-// +----------+--------------------+-------------------------+
-// |    1     | Digit 1            |  700 Hz  +  900 Hz      |
-// |    2     | Digit 2            |  700 Hz  + 1100 Hz      |
-// |    3     | Digit 3            |  900 Hz  + 1100 Hz      |
-// |    4     | Digit 4            |  700 Hz  + 1300 Hz      |
-// |    5     | Digit 5            |  900 Hz  + 1300 Hz      |
-// |    6     | Digit 6            | 1100 Hz  + 1300 Hz      |
-// |    7     | Digit 7            |  700 Hz  + 1500 Hz      |
-// |    8     | Digit 8            |  900 Hz  + 1500 Hz      |
-// |    9     | Digit 9            | 1100 Hz  + 1500 Hz      |
-// |    0     | Digit 0 (or 10)    | 1300 Hz  + 1500 Hz      |
-// +----------+--------------------+-------------------------+
-// |    *     | KP1 (Domestic)     | 1100 Hz  + 1700 Hz      |
-// |  [Custom]| KP2 (International)| 1300 Hz  + 1700 Hz      |
-// |    #     | ST (Start)         | 1500 Hz  + 1700 Hz      |
-// +----------+--------------------+-------------------------+
-// |    D     | SF Control Tone    | 2600 Hz  (Single Pure)  |
-// +----------+--------------------+-------------------------+
 
 
 #define RANDOM_SEED_PIN A0            // floating pin for seeding the RNG
@@ -54,10 +33,7 @@ MD_AD9833	AD2(PIN_DATA, PIN_CLK, PIN_FSYNC2); // Arbitrary SPI pins
 
 KeypadHandler keypad_handler(&keyPad, MIN_KEYPRESS_TIME);
 
-// #define SILENT_FREQ 1000000
 #define SILENT_FREQ 50000
-
-Dtmf dtmf;
 
 HookLight hook_light(HOOK_LIGHT_PIN);
 
@@ -76,43 +52,39 @@ bool begin_keypad(I2CKeyPad& keypad, const char * keymap, const uint8_t address 
 }
 
 void sound_off(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-  AD2.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
+  tones.sound_off();
 }
 
 void busy_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 480.0);
-  AD2.setFrequency((MD_AD9833::channel_t)0, 620.0);
+  tones.busy_on();
 }
 
 void uk_busy_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 400.0);
+  tones.uk_busy_on();
 }
 
 void ring_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 480.0);
-  AD2.setFrequency((MD_AD9833::channel_t)0, 440.0);
+  tones.ring_on();
 }
 
 void uk_ring_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 400.0);
-  AD2.setFrequency((MD_AD9833::channel_t)0, 450.0);
+  tones.uk_ring_on();
 }
 
 void error_tone1_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 913.8);
+  tones.error_tone1_on();
 }
 
 void error_tone2_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 1428.5);
+  tones.error_tone2_on();
 }
 
 void error_tone3_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 1776.7);
+  tones.error_tone3_on();
 }
 
 void cancel_tone_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 941);
+  tones.cancel_tone_on();
 }
 
 NonBlockingAction ring_actions[2] = { ring_on, sound_off};
@@ -151,52 +123,29 @@ NonBlockingAction cancel_actions[4] = { cancel_tone_on, sound_off, cancel_tone_o
 int cancel_times[4] = { 50, 50, 50, 50 };
 NonBlockingSequence cancel_sequence(cancel_actions, cancel_times, 4, false);
 
-void dual_tone(int freq1, int freq2, int times, int inter_delay, int final_delay = -1){
-  final_delay = (final_delay == -1 ? inter_delay : final_delay);
-  freq2 = (freq2 == 0 ? SILENT_FREQ : freq2);
-  for(int i = 0; i < times; i++){
-    AD1.setFrequency((MD_AD9833::channel_t)0, freq1);
-    AD2.setFrequency((MD_AD9833::channel_t)0, freq2);
-    delay(inter_delay);
-    AD1.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-    AD2.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-    delay(i == times-1 ? final_delay : inter_delay);
-  }  
-}
-
 void pop(){
   hook_light.wink();
-  dual_tone(200, 200, 1, 7, 0);
+  tones.dual_tone(200, 200, 1, 7, 0);
   hook_light.wink();
 }
 
 void click(){
   hook_light.wink();
-  dual_tone(600, 600, 1, 3, 0);
+  tones.dual_tone(600, 600, 1, 3, 0);
   hook_light.wink();
 }
 
-void dial_tone(){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 350.0);
-  AD2.setFrequency((MD_AD9833::channel_t)0, 440.0);
-}
-
 void confirmation_tone(){
-  dual_tone(350, 440, 3, 100);
+  tones.dual_tone(350, 440, 3, 100);
 }
 
 void disconnect_tone(){
-  dual_tone(2600, 0, 1, 200);
+  tones.dual_tone(2600, 0, 1, 200);
 }
 
 void cancel_tone(){
   cancel_sequence.start(1);
   while(cancel_sequence.step());
-}
-
-void dial_key(int key){
-  AD1.setFrequency((MD_AD9833::channel_t)0, dtmf.row_freq_from_key(key));
-  AD2.setFrequency((MD_AD9833::channel_t)0, dtmf.col_freq_from_key(key));
 }
 
 void error_tone(){
@@ -223,13 +172,7 @@ void setup() {
     Serial.println("Failed to begin keypad");
   }
 
-  AD1.begin();
-  AD2.begin();
-  AD1.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-  AD1.setMode(MD_AD9833::MODE_SINE);
-
-  AD2.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-  AD2.setMode(MD_AD9833::MODE_SINE);
+  tones.begin();
 
   pinMode(HOOK_LIGHT_PIN, OUTPUT);
   digitalWrite(HOOK_LIGHT_PIN, HIGH);
@@ -387,13 +330,10 @@ bool step_outcome(int outcome){
 }
 
 void pre_routing_sound(){
-  // random delays, clicks, pops, other routing effects here
   delay(random(500, 1000));
-  // pop();
   click();
   delay(random(500, 1000));
   pop();
-  // delay(random(250, 500));
   delay(300);
 }
 
@@ -404,7 +344,7 @@ void post_routing_sound(){
 
 void action_dial(int8_t key, char ch){
   if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
-    dial_key(key);
+    tones.dial_key(key);
   }
 }
 
@@ -415,7 +355,7 @@ void action_undial(int8_t key, char ch){
 }
 
 void action_dtmf(int8_t key, char ch){
-  dial_key(key);
+  tones.dial_key(key);
 }
 
 void action_undtmf(int8_t key, char ch){
@@ -489,7 +429,7 @@ void loop()
       break;
     case MODE_INITIATE_CALL:
       hook_light.on();
-      dial_tone();
+      tones.dial_tone();
       mode = MODE_CALL_START;
       // edge triggered key may still be pressed
       while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
