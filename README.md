@@ -1,3 +1,5 @@
+<img width="2625" height="1969" alt="20260627_125151" src="https://github.com/user-attachments/assets/63a981e0-5da4-4811-b681-5a5dcfd21474" />
+
 # SimCall
 
 A keypad-driven telephone call simulator built on an Arduino Nano, capable of producing authentic DTMF dialing tones and realistic call-progress sounds including ringback, busy, reorder, and error tones — for both North American and UK telephone standards.
