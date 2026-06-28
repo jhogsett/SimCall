@@ -239,7 +239,7 @@ Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
   return outcome;
 }
 
-void start_outcome(int outcome){
+void start_outcome(Outcomes outcome){
   if(call_type == CALL_INTL){
     switch(outcome){
       case OUTCOME_RING:
@@ -273,7 +273,7 @@ void start_outcome(int outcome){
   }
 }
 
-bool step_outcome(int outcome){
+bool step_outcome(Outcomes outcome){
   bool keep_going;
 
   if(call_type == CALL_INTL){
