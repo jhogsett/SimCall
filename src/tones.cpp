@@ -100,7 +100,9 @@ void Tones::disconnect_tone(){
   dual_tone(2600, 0, 1, 200);
 }
 
-void Tones::dial_key(int key){
-  _pDevice1->setFrequency((MD_AD9833::channel_t)0, _dtmf.row_freq_from_key(key));
-  _pDevice2->setFrequency((MD_AD9833::channel_t)0, _dtmf.col_freq_from_key(key));
+void Tones::dial_key(uint8_t key){
+  if (key >= 0 && key <= 15) {
+    _pDevice1->setFrequency((MD_AD9833::channel_t)0, _dtmf.row_freq_from_key(key));
+    _pDevice2->setFrequency((MD_AD9833::channel_t)0, _dtmf.col_freq_from_key(key));
+  }
 }

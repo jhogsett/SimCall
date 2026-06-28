@@ -25,7 +25,7 @@ public:
     void dial_tone();
     void confirmation_tone();
     void disconnect_tone();
-    void dial_key(int key);
+    void dial_key(uint8_t key);
 
 private:
     MD_AD9833 * _pDevice1;
