@@ -8,39 +8,30 @@
 #include "hook_light.h"
 #include "tones.h"
 
-
-
-#define RANDOM_SEED_PIN A0            // floating pin for seeding the RNG
-
-static RandomSeed<RANDOM_SEED_PIN> randomizer;
-
-const uint8_t KEYPAD_ADDRESS = 0x20;
-I2CKeyPad keyPad(KEYPAD_ADDRESS);
-char keymap[20] = "D#0*C987B654A321INF";  //  N = NoKey, F = Fail
-
 // Pins for SPI comm with the AD9833 IC
 const uint8_t PIN_DATA = 11;  ///< SPI Data pin number
 const uint8_t PIN_CLK = 13;  	///< SPI Clock pin number
 const uint8_t PIN_FSYNC1 = A2; //8; ///< SPI Load pin number (FSYNC in AD9833 usage)
 const uint8_t PIN_FSYNC2 = A3; //7;  ///< SPI Load pin number (FSYNC in AD9833 usage)
 
-const uint8_t HOOK_LIGHT_PIN = A1;
+const uint8_t RANDOM_SEED_PIN = A0;
+static RandomSeed<RANDOM_SEED_PIN> randomizer;
+
+const uint8_t KEYPAD_ADDRESS = 0x20;
+I2CKeyPad keyPad(KEYPAD_ADDRESS);
+char keymap[20] = "D#0*C987B654A321INF";  //  N = NoKey, F = Fail
 
 MD_AD9833	AD1(PIN_DATA, PIN_CLK, PIN_FSYNC1); // Arbitrary SPI pins
 MD_AD9833	AD2(PIN_DATA, PIN_CLK, PIN_FSYNC2); // Arbitrary SPI pins
 
-#define MIN_KEYPRESS_TIME 20
-
+const uint8_t MIN_KEYPRESS_TIME = 20;
 KeypadHandler keypad_handler(&keyPad, MIN_KEYPRESS_TIME);
 
-#define SILENT_FREQ 50000
-
+const uint8_t HOOK_LIGHT_PIN = A1;
 HookLight hook_light(HOOK_LIGHT_PIN);
 
+const float SILENT_FREQ = 50000.0;
 Tones tones(&AD1, &AD2, SILENT_FREQ);
-
-#define DIAL_TONE_A 350.0
-#define DIAL_TONE_B 440.0
 
 bool begin_keypad(I2CKeyPad& keypad, const char * keymap, const uint8_t address = 0x20){
   if(!keyPad.begin()){
@@ -180,32 +171,34 @@ void setup() {
   startup_sequence();
 }
 
-#define MAX_DIGITS 16
+const uint8_t MAX_DIGITS = 16;
 char digits[MAX_DIGITS+1];
 int8_t num_digits = 0;
 
-#define CALL_NONE 0
+const uint8_t CALL_NONE = 0;
 // 867-5209
-#define CALL_LOCAL 1
-#define LOCAL_COUNT 7
+const uint8_t CALL_LOCAL = 1;
+const uint8_t LOCAL_COUNT = 7;
 // 1-800-555-1212
-#define CALL_LONG 2
-#define LONG_PREFIX '1'
-#define LONG_COUNT 11
+const uint8_t CALL_LONG = 2;
+const char LONG_PREFIX = '1';
+const uint8_t LONG_COUNT = 11;
 // 011-44-8302-1212
-#define CALL_INTL 3
-#define INTL_PREFIX '0'
-#define INTL_COUNT 13
+const uint8_t CALL_INTL = 3;
+const char INTL_PREFIX = '0';
+const uint8_t INTL_COUNT = 13;
 
 int digit_count = 0;
 int call_type = CALL_NONE;
 
-#define OUTCOME_RING 0
-#define OUTCOME_BUSY 1
-#define OUTCOME_REORDER 2
-#define OUTCOME_ERROR 3
+enum Outcomes{
+  OUTCOME_RING,
+  OUTCOME_BUSY,
+  OUTCOME_REORDER,
+  OUTCOME_ERROR
+};
 
-int outcome;
+Outcomes outcome;
 
 int determine_outcome(const char * pressed_digits, int8_t num_digits){
   switch(pressed_digits[num_digits-1]){
@@ -394,16 +387,19 @@ void determine_routing(char ch){
   }
 }
 
-#define MODE_WAITING 0
-#define MODE_INITIATE_CALL 1
-#define MODE_CALL_START 2
-#define MODE_CALL_IN_PROGRESS 3
-#define MODE_ROUTING_START 4
-#define MODE_ROUTING_IN_PROGRESS 5
-#define MODE_COMMAND_B 20
-#define MODE_COMMAND_C 30
-#define MODE_COMMAND_D 40
-int mode = MODE_WAITING;
+enum Modes{
+  MODE_WAITING,
+  MODE_INITIATE_CALL,
+  MODE_CALL_START,
+  MODE_CALL_IN_PROGRESS,
+  MODE_ROUTING_START,
+  MODE_ROUTING_IN_PROGRESS,
+  MODE_COMMAND_B,
+  MODE_COMMAND_C,
+  MODE_COMMAND_D
+};
+
+Modes mode = MODE_WAITING;
 
 void loop()
 {
