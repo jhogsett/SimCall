@@ -126,10 +126,6 @@ void click(){
   hook_light.wink();
 }
 
-void confirmation_tone(){
-  tones.dual_tone(350, 440, 3, 100);
-}
-
 void disconnect_tone(){
   tones.dual_tone(2600, 0, 1, 200);
 }
@@ -148,7 +144,7 @@ void error_tone(){
 void startup_sequence(){
   delay(500);
   hook_light.on();
-  confirmation_tone();
+  tones.confirmation_tone();
   hook_light.off();
 }
 

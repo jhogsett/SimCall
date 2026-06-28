@@ -1,5 +1,5 @@
-#ifndef __DTMF_H__
-#define __DTMF_H__
+#ifndef SIMCALL_DTMF_H
+#define SIMCALL_DTMF_H
 
 #include <Arduino.h>
 

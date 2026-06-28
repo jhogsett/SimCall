@@ -1,5 +1,5 @@
-#ifndef __TONES_H__
-#define __TONES_H__
+#ifndef SIMCALL_TONES_H
+#define SIMCALL_TONES_H
 
 #include <Arduino.h>
 #include <MD_AD9833.h>

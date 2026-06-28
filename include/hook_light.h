@@ -1,5 +1,5 @@
-#ifndef __HOOK_LIGHT_H__
-#define __HOOK_LIGHT_H__
+#ifndef SIMCALL_HOOK_LIGHT_H
+#define SIMCALL_HOOK_LIGHT_H
 
 #include <Arduino.h>
 
