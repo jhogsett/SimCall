@@ -12,13 +12,13 @@ Dtmf::Dtmf(){
 }
 
 int Dtmf::row_freq_from_key(uint8_t key){
-key = key % 16;
-uint8_t row = (15 - key) / 4;
-return _rows[row];
+    key = key % 16;
+    uint8_t row = (15 - key) / 4;
+    return _rows[row];
 }
 
 int Dtmf::col_freq_from_key(uint8_t key){
-key = key % 16;
-uint8_t col = (15 - key) % 4;
-return _cols[col];
+    key = key % 16;
+    uint8_t col = (15 - key) % 4;
+    return _cols[col];
 }

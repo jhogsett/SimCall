@@ -14,7 +14,7 @@ const uint8_t PIN_CLK = 13;  	///< SPI Clock pin number
 const uint8_t PIN_FSYNC1 = A2; //8; ///< SPI Load pin number (FSYNC in AD9833 usage)
 const uint8_t PIN_FSYNC2 = A3; //7;  ///< SPI Load pin number (FSYNC in AD9833 usage)
 
-const uint8_t RANDOM_SEED_PIN = A0;
+constexpr uint8_t RANDOM_SEED_PIN = A0;
 static RandomSeed<RANDOM_SEED_PIN> randomizer;
 
 const uint8_t KEYPAD_ADDRESS = 0x20;
