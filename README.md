@@ -104,6 +104,10 @@ Standard 4×4 keypad layout:
 
 ---
 
+## 3D Models
+
+https://www.tinkercad.com/things/l1nQ52lGVaH-simcall-final
+
 ## Planned Features
 
 ### B — Operator / Blue Box Mode
