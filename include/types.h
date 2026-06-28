@@ -1,6 +1,5 @@
 
-// typedef void (*KeypadAction)(char key, char ch);
-using KeypadAction = void (*)(char key, char ch);
+using KeypadAction = void (*)(int8_t key, char ch);
 
 class KeypadHandler
 {
@@ -16,8 +15,8 @@ public:
     _pressed_char = '\0';
   }
 
-  static bool char_in_chars(char ch, char * chars){
-    char * chariter = chars;
+  static bool char_in_chars(char ch, const char * chars){
+    const char * chariter = chars;
     while(*chariter != '\0'){
       if(ch == *chariter){
         return true;
@@ -114,14 +113,14 @@ public:
     return false;
   }
 
-  char keypad_char_wait(char * valid_chars, int state=STATE_LEGIT_KEY_RELEASE, KeypadAction press_action=NULL, KeypadAction release_action=NULL){
+  char keypad_char_wait(const char * valid_chars, int state=STATE_LEGIT_KEY_RELEASE, KeypadAction press_action=NULL, KeypadAction release_action=NULL){
     if(!keypad_state_wait(state, press_action, release_action)){
-      return NULL;
+      return '\0';
     }
     if(valid_chars == NULL){
       return _pkeypad->getLastChar();
     } else {
-      char * chariter = valid_chars;
+      const char * chariter = valid_chars;
       char ch = _pkeypad->getLastChar();
       while(*chariter != '\0'){
         if(ch == *chariter){
@@ -130,28 +129,28 @@ public:
         chariter++;
       }
     }
-    return NULL;
+    return '\0';
   }
 
-  char wait_for_char(char * valid_chars, unsigned long timeoutms=1000, int completion_state=STATE_IDLE, KeypadAction press_action=NULL, KeypadAction release_action=NULL){
+  char wait_for_char(const char * valid_chars, unsigned long timeoutms=1000, int completion_state=STATE_IDLE, KeypadAction press_action=NULL, KeypadAction release_action=NULL){
     unsigned long timeout_time = millis() + timeoutms;
     char ch;
     while(millis() < timeout_time){
       // should this be STATE_CONTINUED_KEY_PRESS?
       // ch = keypad_char_wait(valid_chars, STATE_LEGIT_KEY_PRESS, press_action, release_action);
       ch = keypad_char_wait(valid_chars, STATE_CONTINUED_KEY_PRESS, press_action, release_action);
-      if(ch != NULL){
+      if(ch != '\0'){
         // should the timeout apply here or get stuck forever on a pressed key?
         while(millis() < timeout_time){
           // actions have to be specified here, they're not call on the keypad_char_wait() line (?)
           if(keypad_state_wait(completion_state, press_action, release_action)){
-          // if(keypad_state_wait(completion_state, NULL, NULL)){
+          // if(keypad_state_wait(completion_state, '\0', '\0')){
             return ch;
           }
         }
       }
     }
-    return NULL;
+    return '\0';
   }
 
   enum State : byte {
@@ -169,7 +168,7 @@ private:
 
   int _key_press_state;
   unsigned long _key_press_time;
-  char _pressed_key;
+  int8_t _pressed_key;
   char _pressed_char;
 };
 
@@ -239,7 +238,7 @@ public:
     _quick_last_action = quick_last_action;
   }
 
-  void start(int num_cycles, uint32_t data = NULL){
+  void start(int num_cycles, uint32_t data = 0L){
     _num_cycles = num_cycles;
     _data = data;
     restart();
@@ -261,7 +260,7 @@ public:
   }
 
   bool step(){
-    if(_abort_action && _abort_action(NULL)){
+    if(_abort_action && _abort_action(0)){
       _state = STATE_ABORTED;
     }
 
