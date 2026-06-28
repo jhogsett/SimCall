@@ -45,82 +45,6 @@ bool begin_keypad(I2CKeyPad& keypad, const char * keymap){
   return true;
 }
 
-
-
-void sound_off(uint32_t data){
-  tones.sound_off();
-}
-
-void busy_on(uint32_t data){
-  tones.busy_on();
-}
-
-void uk_busy_on(uint32_t data){
-  tones.uk_busy_on();
-}
-
-void ring_on(uint32_t data){
-  tones.ring_on();
-}
-
-void uk_ring_on(uint32_t data){
-  tones.uk_ring_on();
-}
-
-void error_tone1_on(uint32_t data){
-  tones.error_tone1_on();
-}
-
-void error_tone2_on(uint32_t data){
-  tones.error_tone2_on();
-}
-
-void error_tone3_on(uint32_t data){
-  tones.error_tone3_on();
-}
-
-void cancel_tone_on(uint32_t data){
-  tones.cancel_tone_on();
-}
-
-NonBlockingAction ring_actions[2] = { ring_on, sound_off};
-int ring_times[2] = { 2000, 4000 };
-NonBlockingSequence ring_sequence(ring_actions, ring_times, 2, true);
-
-NonBlockingAction uk_ring_actions[4] = { uk_ring_on, sound_off, uk_ring_on, sound_off};
-int uk_ring_times[4] = { 400, 200, 400, 2000 };
-NonBlockingSequence uk_ring_sequence(uk_ring_actions, uk_ring_times, 4, true);
-
-NonBlockingAction busy_actions[2] = { busy_on, sound_off};
-int busy_times[2] = { 500, 500 };
-NonBlockingSequence busy_sequence(busy_actions, busy_times, 2, true);
-
-NonBlockingAction uk_busy_actions[2] = { uk_busy_on, sound_off};
-int uk_busy_times[2] = { 375, 375 };
-NonBlockingSequence uk_busy_sequence(uk_busy_actions, uk_busy_times, 2, true);
-
-NonBlockingAction reorder_actions[2] = { busy_on, sound_off};
-int reorder_times[2] = { 250, 250 };
-NonBlockingSequence reorder_sequence(reorder_actions, reorder_times, 2, true);
-
-NonBlockingAction uk_reorder_actions[4] = { uk_busy_on, sound_off, uk_busy_on, sound_off};
-int uk_reorder_times[4] = { 400, 350, 225, 525 };
-NonBlockingSequence uk_reorder_sequence(uk_reorder_actions, uk_reorder_times, 4, true);
-
-NonBlockingAction error_actions[4] = { error_tone1_on, error_tone2_on, error_tone3_on, sound_off};
-int error_times[4] = { 380, 276, 380, 0 };
-NonBlockingSequence error_sequence(error_actions, error_times, 4, false);
-
-NonBlockingAction uk_error_actions[1] = { uk_busy_on };
-int uk_error_times[1] = { 1000 };
-NonBlockingSequence uk_error_sequence(uk_error_actions, uk_error_times, 1, false);
-
-NonBlockingAction cancel_actions[4] = { cancel_tone_on, sound_off, cancel_tone_on, sound_off};
-int cancel_times[4] = { 50, 50, 50, 50 };
-NonBlockingSequence cancel_sequence(cancel_actions, cancel_times, 4, false);
-
-
-
 void pop(){
   hook_light.wink();
   tones.dual_tone(200, 200, 1, 7, 0);
@@ -134,14 +58,14 @@ void click(){
 }
 
 void blocking_cancel_tone(){
-  cancel_sequence.start(1);
-  while(cancel_sequence.step());
+  audio_sequence.cancel_sequence.start(1);
+  while(audio_sequence.cancel_sequence.step());
 }
 
 void blocking_error_tone(){
   delay(200);
-  error_sequence.start(1);
-  while(error_sequence.step());
+  audio_sequence.error_sequence.start(1);
+  while(audio_sequence.error_sequence.step());
 }
 
 void startup_sequence(){
@@ -165,12 +89,6 @@ void setup() {
   hook_light.begin();
 
   tones.begin();
-
-  // audio_sequence.ring_sequence.start(2);
-  // for(int i = 0; i < 13000; i++){
-  //   audio_sequence.ring_sequence.step();
-  //   delay(1);
-  // }
 
   startup_sequence();
 }
@@ -255,31 +173,31 @@ void start_outcome(Outcomes outcome){
   if(call_type == CALL_INTL){
     switch(outcome){
       case OUTCOME_RING:
-        uk_ring_sequence.start(8);
+        audio_sequence.uk_ring_sequence.start(8);
         break;
       case OUTCOME_BUSY:
-        uk_busy_sequence.start(12);
+        audio_sequence.uk_busy_sequence.start(12);
         break;
       case OUTCOME_REORDER:
-        uk_reorder_sequence.start(24);
+        audio_sequence.uk_reorder_sequence.start(24);
         break;
       case OUTCOME_ERROR:
-        uk_error_sequence.start(10);
+        audio_sequence.uk_error_sequence.start(10);
         break;
     }
   } else {
     switch(outcome){
       case OUTCOME_RING:
-        ring_sequence.start(6);
+        audio_sequence.ring_sequence.start(6);
         break;
       case OUTCOME_BUSY:
-        busy_sequence.start(12);
+        audio_sequence.busy_sequence.start(12);
         break;
       case OUTCOME_REORDER:
-        reorder_sequence.start(24);
+        audio_sequence.reorder_sequence.start(24);
         break;
       case OUTCOME_ERROR:
-        error_sequence.start(1);
+        audio_sequence.error_sequence.start(1);
         break;
     }
   }
@@ -291,16 +209,16 @@ bool step_outcome(Outcomes outcome){
   if(call_type == CALL_INTL){
     switch(outcome){
       case OUTCOME_RING:
-        keep_going = uk_ring_sequence.step();
+        keep_going = audio_sequence.uk_ring_sequence.step();
         break;
       case OUTCOME_BUSY:
-        keep_going = uk_busy_sequence.step();
+        keep_going = audio_sequence.uk_busy_sequence.step();
         break;
       case OUTCOME_REORDER:
-        keep_going = uk_reorder_sequence.step();
+        keep_going = audio_sequence.uk_reorder_sequence.step();
         break;
       case OUTCOME_ERROR:
-        keep_going = uk_error_sequence.step();
+        keep_going = audio_sequence.uk_error_sequence.step();
         break;
       default:
         keep_going = false;
@@ -308,16 +226,16 @@ bool step_outcome(Outcomes outcome){
   } else {
     switch(outcome){
       case OUTCOME_RING:
-        keep_going = ring_sequence.step();
+        keep_going = audio_sequence.ring_sequence.step();
         break;
       case OUTCOME_BUSY:
-        keep_going = busy_sequence.step();
+        keep_going = audio_sequence.busy_sequence.step();
         break;
       case OUTCOME_REORDER:
-        keep_going = reorder_sequence.step();
+        keep_going = audio_sequence.reorder_sequence.step();
         break;
       case OUTCOME_ERROR:
-        keep_going = error_sequence.step();
+        keep_going = audio_sequence.error_sequence.step();
         break;
       default:
         keep_going = false;
@@ -347,7 +265,7 @@ void action_dial(int8_t key, char ch){
 
 void action_undial(int8_t key, char ch){
   if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
-    sound_off(0);
+    tones.sound_off();
   }
 }
 
@@ -356,7 +274,7 @@ void action_dtmf(int8_t key, char ch){
 }
 
 void action_undtmf(int8_t key, char ch){
-  sound_off(0);
+  tones.sound_off();
 }
 
 void reset_call(){
@@ -490,7 +408,7 @@ void loop()
 
     case TOP_LEVEL_LSTATE_ROUTING_IN_PROGRESS:
       if(keypad_handler.keypad_pressed()){
-        sound_off(0);
+        tones.sound_off();
         // edge triggered key may still be pressed
         while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
         hook_light.off();
@@ -498,7 +416,7 @@ void loop()
         mode = TOP_LEVEL_LSTATE_WAITING;
       }
       if(!step_outcome(outcome)){
-        sound_off(0);
+        tones.sound_off();
         blocking_post_routing_sound();
         hook_light.off();
        mode = TOP_LEVEL_LSTATE_WAITING;
