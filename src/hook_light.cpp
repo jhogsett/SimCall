@@ -1,9 +1,7 @@
 #include <Arduino.h>
 #include "hook_light.h"
 
-HookLight::HookLight(uint8_t pin){
-    _pin = pin;
-}
+HookLight::HookLight(uint8_t pin) : _pin(pin) {}
 
 void HookLight::begin()
 {

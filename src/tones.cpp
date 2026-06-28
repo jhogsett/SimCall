@@ -5,11 +5,8 @@
 Dtmf Tones::_dtmf;
 
 Tones::Tones(MD_AD9833 * pDevice1, MD_AD9833 * pDevice2, float silent_freq)
-{
-    _pDevice1 = pDevice1;
-    _pDevice2 = pDevice2;
-    _silent_freq = silent_freq;
-}
+   : _pDevice1(pDevice1), _pDevice2(pDevice2), _silent_freq(silent_freq)
+ {}
 
 void Tones::begin()
 {
