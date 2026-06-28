@@ -3,7 +3,8 @@
 
 #include <Arduino.h>
 
-class HookLight{
+class HookLight
+{
 public:
     HookLight(uint8_t pin);
 
