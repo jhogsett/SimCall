@@ -32,4 +32,6 @@
 *.app
 
 .pio/
+
 .vscode/
+!.vscode/extensions.json
