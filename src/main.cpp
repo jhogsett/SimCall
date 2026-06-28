@@ -33,8 +33,8 @@ HookLight hook_light(HOOK_LIGHT_PIN);
 const float SILENT_FREQ = 50000.0;
 Tones tones(&AD1, &AD2, SILENT_FREQ);
 
-bool begin_keypad(I2CKeyPad& keypad, const char * keymap, const uint8_t address = 0x20){
-  if(!keyPad.begin()){
+bool begin_keypad(I2CKeyPad& keypad, const char * keymap){
+  if(!keypad.begin()){
     return false;
   }
 
@@ -124,10 +124,6 @@ void click(){
   hook_light.wink();
   tones.dual_tone(600, 600, 1, 3, 0);
   hook_light.wink();
-}
-
-void disconnect_tone(){
-  tones.dual_tone(2600, 0, 1, 200);
 }
 
 void cancel_tone(){
@@ -501,7 +497,7 @@ void loop()
     case MODE_COMMAND_C:
     case MODE_COMMAND_D:
       delay(200);
-      disconnect_tone();
+      tones.disconnect_tone();
       mode = MODE_WAITING;
       break;
   }

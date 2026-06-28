@@ -35,6 +35,7 @@ void Tones::busy_on(){
 
 void Tones::uk_busy_on(){
   _pDevice1->setFrequency((MD_AD9833::channel_t)0, 400.0);
+  _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
 }
 
 void Tones::ring_on(){
@@ -49,29 +50,39 @@ void Tones::uk_ring_on(){
 
 void Tones::error_tone1_on(){
   _pDevice1->setFrequency((MD_AD9833::channel_t)0, 913.8);
+  _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
 }
 
 void Tones::error_tone2_on(){
   _pDevice1->setFrequency((MD_AD9833::channel_t)0, 1428.5);
+  _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
 }
 
 void Tones::error_tone3_on(){
   _pDevice1->setFrequency((MD_AD9833::channel_t)0, 1776.7);
+  _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
 }
 
 void Tones::cancel_tone_on(){
   _pDevice1->setFrequency((MD_AD9833::channel_t)0, 941);
+  _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
 }
 
 void Tones::dual_tone(int freq1, int freq2, int times, int inter_delay, int final_delay){
   final_delay = (final_delay == -1 ? inter_delay : final_delay);
-  freq2 = (freq2 == 0 ? _silent_freq : freq2);
+
+  const float freq1_out = static_cast<float>(freq1);
+  const float freq2_out = (freq2 == 0 ? _silent_freq : static_cast<float>(freq2));
+
   for(int i = 0; i < times; i++){
-    _pDevice1->setFrequency((MD_AD9833::channel_t)0, freq1);
-    _pDevice2->setFrequency((MD_AD9833::channel_t)0, freq2);
+     _pDevice1->setFrequency((MD_AD9833::channel_t)0, freq1_out);
+     _pDevice2->setFrequency((MD_AD9833::channel_t)0, freq2_out);
+
     delay(inter_delay);
+
     _pDevice1->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
     _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
+
     delay(i == times-1 ? final_delay : inter_delay);
   }  
 }
