@@ -27,7 +27,7 @@
 // +----------+--------------------+-------------------------+
 
 
-#define RANDOM_SEED_PIN A1            // floating pin for seeding the RNG
+#define RANDOM_SEED_PIN A0            // floating pin for seeding the RNG
 
 static RandomSeed<RANDOM_SEED_PIN> randomizer;
 
@@ -293,8 +293,8 @@ int call_type = CALL_NONE;
 
 int outcome;
 
-int determine_outcome(char * digits, int8_t num_digits){
-  switch(digits[num_digits-1]){
+int determine_outcome(const char * pressed_digits, int8_t num_digits){
+  switch(pressed_digits[num_digits-1]){
     case '1':
       return outcome = OUTCOME_BUSY;
     case '2':
@@ -391,6 +391,8 @@ bool step_outcome(int outcome){
       case OUTCOME_ERROR:
         keep_going = uk_error_sequence.step();
         break;
+      default:
+        keep_going = false;
     }
   } else {
     switch(outcome){
@@ -406,6 +408,8 @@ bool step_outcome(int outcome){
       case OUTCOME_ERROR:
         keep_going = error_sequence.step();
         break;
+      default:
+        keep_going = false;
     }
   }
   return keep_going;
