@@ -5,36 +5,8 @@
 #include <MD_AD9833.h>
 #include "types.h"
 #include <random_seed.h>
-
-// +----------+--------------------+-------------------------+
-// | Keypad   | MF Signaling Tone  | Frequency Pair (Hz)     |
-// +----------+--------------------+-------------------------+
-// |    1     | Digit 1            |  700 Hz  +  900 Hz      |
-// |    2     | Digit 2            |  700 Hz  + 1100 Hz      |
-// |    3     | Digit 3            |  900 Hz  + 1100 Hz      |
-// |    4     | Digit 4            |  700 Hz  + 1300 Hz      |
-// |    5     | Digit 5            |  900 Hz  + 1300 Hz      |
-// |    6     | Digit 6            | 1100 Hz  + 1300 Hz      |
-// |    7     | Digit 7            |  700 Hz  + 1500 Hz      |
-// |    8     | Digit 8            |  900 Hz  + 1500 Hz      |
-// |    9     | Digit 9            | 1100 Hz  + 1500 Hz      |
-// |    0     | Digit 0 (or 10)    | 1300 Hz  + 1500 Hz      |
-// +----------+--------------------+-------------------------+
-// |    *     | KP1 (Domestic)     | 1100 Hz  + 1700 Hz      |
-// |  [Custom]| KP2 (International)| 1300 Hz  + 1700 Hz      |
-// |    #     | ST (Start)         | 1500 Hz  + 1700 Hz      |
-// +----------+--------------------+-------------------------+
-// |    D     | SF Control Tone    | 2600 Hz  (Single Pure)  |
-// +----------+--------------------+-------------------------+
-
-
-#define RANDOM_SEED_PIN A0            // floating pin for seeding the RNG
-
-static RandomSeed<RANDOM_SEED_PIN> randomizer;
-
-const uint8_t KEYPAD_ADDRESS = 0x20;
-I2CKeyPad keyPad(KEYPAD_ADDRESS);
-char keymap[20] = "D#0*C987B654A321INF";  //  N = NoKey, F = Fail
+#include "hook_light.h"
+#include "tones.h"
 
 // Pins for SPI comm with the AD9833 IC
 const uint8_t PIN_DATA = 11;  ///< SPI Data pin number
@@ -42,136 +14,68 @@ const uint8_t PIN_CLK = 13;  	///< SPI Clock pin number
 const uint8_t PIN_FSYNC1 = A2; //8; ///< SPI Load pin number (FSYNC in AD9833 usage)
 const uint8_t PIN_FSYNC2 = A3; //7;  ///< SPI Load pin number (FSYNC in AD9833 usage)
 
-const uint8_t HOOK_LIGHT_PIN = A1;
+constexpr uint8_t RANDOM_SEED_PIN = A0;
+static RandomSeed<RANDOM_SEED_PIN> randomizer;
+
+const uint8_t KEYPAD_ADDRESS = 0x20;
+I2CKeyPad keyPad(KEYPAD_ADDRESS);
+char keymap[20] = "D#0*C987B654A321INF";  //  N = NoKey, F = Fail
 
 MD_AD9833	AD1(PIN_DATA, PIN_CLK, PIN_FSYNC1); // Arbitrary SPI pins
 MD_AD9833	AD2(PIN_DATA, PIN_CLK, PIN_FSYNC2); // Arbitrary SPI pins
 
-#define MIN_KEYPRESS_TIME 20
-
+const uint8_t MIN_KEYPRESS_TIME = 20;
 KeypadHandler keypad_handler(&keyPad, MIN_KEYPRESS_TIME);
 
-// #define SILENT_FREQ 1000000
-#define SILENT_FREQ 50000
+const uint8_t HOOK_LIGHT_PIN = A1;
+HookLight hook_light(HOOK_LIGHT_PIN);
 
-class DtmfFreqencies
-{
-public:
-  // keymap specifies the characters associated with the 4x4 keypad from the bottom right key to the top left key (down->up, right->left)
-  // this is the same order the I2CKeyPad expects
-  DtmfFreqencies(){
-    _rows[0] = 697;
-    _rows[1] = 770;
-    _rows[2] = 852;
-    _rows[3] = 941;
-    _cols[0] = 1209;
-    _cols[1] = 1336;
-    _cols[2] = 1477;
-    _cols[3] = 1633;
-  }
+const float SILENT_FREQ = 50000.0;
+Tones tones(&AD1, &AD2, SILENT_FREQ);
 
-  int row_freq_from_key(int8_t key){
-    int8_t row = (15 - key) / 4;
-    return _rows[row];
-  }
-
-  int col_freq_from_key(int8_t key){
-    int8_t col = (15 - key) % 4;
-    return _cols[col];
-  }
-
-private:
-  int _rows[4];
-  int _cols[4];
-};
-
-DtmfFreqencies dtmf;
-
-#define DIAL_TONE_A 350.0
-#define DIAL_TONE_B 440.0
-
-bool begin_keypad(I2CKeyPad& keypad, const char * keymap, const uint8_t address = 0x20){
-  if(!keyPad.begin()){
+bool begin_keypad(I2CKeyPad& keypad, const char * keymap){
+  if(!keypad.begin()){
     return false;
   }
 
-  keyPad.loadKeyMap(const_cast<char *>(keymap));
+  keypad.loadKeyMap(const_cast<char *>(keymap));
   return true;
 }
 
-void setup() {
-  randomizer.randomize();
-  Serial.begin(115200);
-
-  Wire.begin();
-  Wire.setClock(400000);
-
-  if(!begin_keypad(keyPad, keymap)){
-    Serial.println("Failed to begin keypad");
-  }
-
-  AD1.begin();
-  AD2.begin();
-  AD1.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-  AD1.setMode(MD_AD9833::MODE_SINE);
-
-  AD2.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-  AD2.setMode(MD_AD9833::MODE_SINE);
-
-  pinMode(HOOK_LIGHT_PIN, OUTPUT);
-  digitalWrite(HOOK_LIGHT_PIN, HIGH);
-}
-
-void hook_light_on(){
-  digitalWrite(HOOK_LIGHT_PIN, LOW);
-}
-
-void hook_light_off(){
-  digitalWrite(HOOK_LIGHT_PIN, HIGH);
-}
-
-void hook_link_wink(){
-  digitalWrite(HOOK_LIGHT_PIN, digitalRead(HOOK_LIGHT_PIN) == HIGH ? LOW : HIGH);
-}
-
 void sound_off(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-  AD2.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
+  tones.sound_off();
 }
 
 void busy_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 480.0);
-  AD2.setFrequency((MD_AD9833::channel_t)0, 620.0);
+  tones.busy_on();
 }
 
 void uk_busy_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 400.0);
+  tones.uk_busy_on();
 }
 
 void ring_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 480.0);
-  AD2.setFrequency((MD_AD9833::channel_t)0, 440.0);
+  tones.ring_on();
 }
 
 void uk_ring_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 400.0);
-  AD2.setFrequency((MD_AD9833::channel_t)0, 450.0);
+  tones.uk_ring_on();
 }
 
 void error_tone1_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 913.8);
+  tones.error_tone1_on();
 }
 
 void error_tone2_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 1428.5);
+  tones.error_tone2_on();
 }
 
 void error_tone3_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 1776.7);
+  tones.error_tone3_on();
 }
 
 void cancel_tone_on(uint32_t data){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 941);
+  tones.cancel_tone_on();
 }
 
 NonBlockingAction ring_actions[2] = { ring_on, sound_off};
@@ -210,55 +114,21 @@ NonBlockingAction cancel_actions[4] = { cancel_tone_on, sound_off, cancel_tone_o
 int cancel_times[4] = { 50, 50, 50, 50 };
 NonBlockingSequence cancel_sequence(cancel_actions, cancel_times, 4, false);
 
-void dual_tone(int freq1, int freq2, int times, int inter_delay, int final_delay = -1){
-  final_delay = (final_delay == -1 ? inter_delay : final_delay);
-  freq2 = (freq2 == 0 ? SILENT_FREQ : freq2);
-  for(int i = 0; i < times; i++){
-    AD1.setFrequency((MD_AD9833::channel_t)0, freq1);
-    AD2.setFrequency((MD_AD9833::channel_t)0, freq2);
-    delay(inter_delay);
-    AD1.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-    AD2.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-    delay(i == times-1 ? final_delay : inter_delay);
-  }  
-}
-
 void pop(){
-  hook_link_wink();
-  dual_tone(200, 200, 1, 7, 0);
-  hook_link_wink();
+  hook_light.wink();
+  tones.dual_tone(200, 200, 1, 7, 0);
+  hook_light.wink();
 }
 
 void click(){
-  hook_link_wink();
-  dual_tone(600, 600, 1, 3, 0);
-  hook_link_wink();
-}
-
-void dial_tone(){
-  AD1.setFrequency((MD_AD9833::channel_t)0, 350.0);
-  AD2.setFrequency((MD_AD9833::channel_t)0, 440.0);
-}
-
-// void confirmation_tone(){
-//   dual_tone(350, 440, 3, 100);
-// }
-
-void disconnect_tone(){
-  dual_tone(2600, 0, 1, 200);
+  hook_light.wink();
+  tones.dual_tone(600, 600, 1, 3, 0);
+  hook_light.wink();
 }
 
 void cancel_tone(){
   cancel_sequence.start(1);
   while(cancel_sequence.step());
-}
-
-void dial_key(int key){
-  // AD1.setFrequency(0, rows[mapr[key]]);
-  // AD2.setFrequency(0, cols[mapc[key]]);
-
-  AD1.setFrequency((MD_AD9833::channel_t)0, dtmf.row_freq_from_key(key));
-  AD2.setFrequency((MD_AD9833::channel_t)0, dtmf.col_freq_from_key(key));
 }
 
 void error_tone(){
@@ -267,34 +137,61 @@ void error_tone(){
   while(error_sequence.step());
 }
 
-#define MAX_DIGITS 16
+void startup_sequence(){
+  delay(500);
+  hook_light.on();
+  tones.confirmation_tone();
+  hook_light.off();
+}
+
+void setup() {
+  randomizer.randomize();
+  Serial.begin(115200);
+
+  Wire.begin();
+  Wire.setClock(400000);
+
+  if(!begin_keypad(keyPad, keymap)){
+    Serial.println("Failed to begin keypad");
+  }
+
+  hook_light.begin();
+
+  tones.begin();
+
+  startup_sequence();
+}
+
+const uint8_t MAX_DIGITS = 16;
 char digits[MAX_DIGITS+1];
 int8_t num_digits = 0;
 
-#define CALL_NONE 0
+const uint8_t CALL_NONE = 0;
 // 867-5209
-#define CALL_LOCAL 1
-#define LOCAL_COUNT 7
+const uint8_t CALL_LOCAL = 1;
+const uint8_t LOCAL_COUNT = 7;
 // 1-800-555-1212
-#define CALL_LONG 2
-#define LONG_PREFIX '1'
-#define LONG_COUNT 11
+const uint8_t CALL_LONG = 2;
+const char LONG_PREFIX = '1';
+const uint8_t LONG_COUNT = 11;
 // 011-44-8302-1212
-#define CALL_INTL 3
-#define INTL_PREFIX '0'
-#define INTL_COUNT 13
+const uint8_t CALL_INTL = 3;
+const char INTL_PREFIX = '0';
+const uint8_t INTL_COUNT = 13;
 
 int digit_count = 0;
 int call_type = CALL_NONE;
 
-#define OUTCOME_RING 0
-#define OUTCOME_BUSY 1
-#define OUTCOME_REORDER 2
-#define OUTCOME_ERROR 3
+enum Outcomes{
+  OUTCOME_RING,
+  OUTCOME_BUSY,
+  OUTCOME_REORDER,
+  OUTCOME_ERROR
+};
 
-int outcome;
+Outcomes outcome;
 
-int determine_outcome(const char * pressed_digits, int8_t num_digits){
+Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
   switch(pressed_digits[num_digits-1]){
     case '1':
       return outcome = OUTCOME_BUSY;
@@ -341,7 +238,7 @@ int determine_outcome(const char * pressed_digits, int8_t num_digits){
   return outcome;
 }
 
-void start_outcome(int outcome){
+void start_outcome(Outcomes outcome){
   if(call_type == CALL_INTL){
     switch(outcome){
       case OUTCOME_RING:
@@ -375,7 +272,7 @@ void start_outcome(int outcome){
   }
 }
 
-bool step_outcome(int outcome){
+bool step_outcome(Outcomes outcome){
   bool keep_going;
 
   if(call_type == CALL_INTL){
@@ -417,13 +314,10 @@ bool step_outcome(int outcome){
 }
 
 void pre_routing_sound(){
-  // random delays, clicks, pops, other routing effects here
   delay(random(500, 1000));
-  // pop();
   click();
   delay(random(500, 1000));
   pop();
-  // delay(random(250, 500));
   delay(300);
 }
 
@@ -434,7 +328,7 @@ void post_routing_sound(){
 
 void action_dial(int8_t key, char ch){
   if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
-    dial_key(key);
+    tones.dial_key(key);
   }
 }
 
@@ -445,7 +339,7 @@ void action_undial(int8_t key, char ch){
 }
 
 void action_dtmf(int8_t key, char ch){
-  dial_key(key);
+  tones.dial_key(key);
 }
 
 void action_undtmf(int8_t key, char ch){
@@ -484,16 +378,19 @@ void determine_routing(char ch){
   }
 }
 
-#define MODE_WAITING 0
-#define MODE_INITIATE_CALL 1
-#define MODE_CALL_START 2
-#define MODE_CALL_IN_PROGRESS 3
-#define MODE_ROUTING_START 4
-#define MODE_ROUTING_IN_PROGRESS 5
-#define MODE_COMMAND_B 20
-#define MODE_COMMAND_C 30
-#define MODE_COMMAND_D 40
-int mode = MODE_WAITING;
+enum Modes{
+  MODE_WAITING,
+  MODE_INITIATE_CALL,
+  MODE_CALL_START,
+  MODE_CALL_IN_PROGRESS,
+  MODE_ROUTING_START,
+  MODE_ROUTING_IN_PROGRESS,
+  MODE_COMMAND_B,
+  MODE_COMMAND_C,
+  MODE_COMMAND_D
+};
+
+Modes mode = MODE_WAITING;
 
 void loop()
 {
@@ -518,8 +415,8 @@ void loop()
       }
       break;
     case MODE_INITIATE_CALL:
-      hook_light_on();
-      dial_tone();
+      hook_light.on();
+      tones.dial_tone();
       mode = MODE_CALL_START;
       // edge triggered key may still be pressed
       while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
@@ -530,14 +427,14 @@ void loop()
       ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "A")){
-          hook_light_off();
+          hook_light.off();
           cancel_tone();
           mode = MODE_WAITING;
           break;
         } else if(KeypadHandler::char_in_chars(ch, "*#")){
           error_tone();
           delay(200);
-          hook_light_off();
+          hook_light.off();
           cancel_tone();
           mode = MODE_WAITING;
         } 
@@ -553,14 +450,14 @@ void loop()
       ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "A")){
-          hook_light_off();
+          hook_light.off();
           cancel_tone();
           mode = MODE_WAITING;
           break;
         } else if(KeypadHandler::char_in_chars(ch, "*#")){
           error_tone();
           delay(200);
-          hook_light_off();
+          hook_light.off();
           cancel_tone();
           mode = MODE_WAITING;
         } else {
@@ -583,14 +480,14 @@ void loop()
         sound_off(0);
         // edge triggered key may still be pressed
         while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
-        hook_light_off();
+        hook_light.off();
         cancel_tone();
         mode = MODE_WAITING;
       }
       if(!step_outcome(outcome)){
         sound_off(0);
         post_routing_sound();
-        hook_light_off();
+        hook_light.off();
        mode = MODE_WAITING;
       }
       break;
@@ -599,7 +496,7 @@ void loop()
     case MODE_COMMAND_C:
     case MODE_COMMAND_D:
       delay(200);
-      disconnect_tone();
+      tones.disconnect_tone();
       mode = MODE_WAITING;
       break;
   }

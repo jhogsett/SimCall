@@ -351,5 +351,3 @@ private:
   bool _aborted;
 };
 
-
-
