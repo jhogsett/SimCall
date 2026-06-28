@@ -10,9 +10,9 @@ public:
   // this is the same order the I2CKeyPad expects
   Dtmf();
 
-  int row_freq_from_key(int8_t key);
+  int row_freq_from_key(uint8_t key);
 
-  int col_freq_from_key(int8_t key);
+  int col_freq_from_key(uint8_t key);
 
 private:
   int _rows[4];
