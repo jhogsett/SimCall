@@ -5,6 +5,7 @@
 #include <MD_AD9833.h>
 #include "types.h"
 #include <random_seed.h>
+#include "hook_light.h"
 
 // +----------+--------------------+-------------------------+
 // | Keypad   | MF Signaling Tone  | Frequency Pair (Hz)     |
@@ -54,38 +55,9 @@ KeypadHandler keypad_handler(&keyPad, MIN_KEYPRESS_TIME);
 // #define SILENT_FREQ 1000000
 #define SILENT_FREQ 50000
 
-class DtmfFreqencies
-{
-public:
-  // keymap specifies the characters associated with the 4x4 keypad from the bottom right key to the top left key (down->up, right->left)
-  // this is the same order the I2CKeyPad expects
-  DtmfFreqencies(){
-    _rows[0] = 697;
-    _rows[1] = 770;
-    _rows[2] = 852;
-    _rows[3] = 941;
-    _cols[0] = 1209;
-    _cols[1] = 1336;
-    _cols[2] = 1477;
-    _cols[3] = 1633;
-  }
-
-  int row_freq_from_key(int8_t key){
-    int8_t row = (15 - key) / 4;
-    return _rows[row];
-  }
-
-  int col_freq_from_key(int8_t key){
-    int8_t col = (15 - key) % 4;
-    return _cols[col];
-  }
-
-private:
-  int _rows[4];
-  int _cols[4];
-};
-
 DtmfFreqencies dtmf;
+
+HookLight hook_light(HOOK_LIGHT_PIN);
 
 #define DIAL_TONE_A 350.0
 #define DIAL_TONE_B 440.0
@@ -97,41 +69,6 @@ bool begin_keypad(I2CKeyPad& keypad, const char * keymap, const uint8_t address 
 
   keyPad.loadKeyMap(const_cast<char *>(keymap));
   return true;
-}
-
-void setup() {
-  randomizer.randomize();
-  Serial.begin(115200);
-
-  Wire.begin();
-  Wire.setClock(400000);
-
-  if(!begin_keypad(keyPad, keymap)){
-    Serial.println("Failed to begin keypad");
-  }
-
-  AD1.begin();
-  AD2.begin();
-  AD1.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-  AD1.setMode(MD_AD9833::MODE_SINE);
-
-  AD2.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
-  AD2.setMode(MD_AD9833::MODE_SINE);
-
-  pinMode(HOOK_LIGHT_PIN, OUTPUT);
-  digitalWrite(HOOK_LIGHT_PIN, HIGH);
-}
-
-void hook_light_on(){
-  digitalWrite(HOOK_LIGHT_PIN, LOW);
-}
-
-void hook_light_off(){
-  digitalWrite(HOOK_LIGHT_PIN, HIGH);
-}
-
-void hook_link_wink(){
-  digitalWrite(HOOK_LIGHT_PIN, digitalRead(HOOK_LIGHT_PIN) == HIGH ? LOW : HIGH);
 }
 
 void sound_off(uint32_t data){
@@ -224,15 +161,15 @@ void dual_tone(int freq1, int freq2, int times, int inter_delay, int final_delay
 }
 
 void pop(){
-  hook_link_wink();
+  hook_light.wink();
   dual_tone(200, 200, 1, 7, 0);
-  hook_link_wink();
+  hook_light.wink();
 }
 
 void click(){
-  hook_link_wink();
+  hook_light.wink();
   dual_tone(600, 600, 1, 3, 0);
-  hook_link_wink();
+  hook_light.wink();
 }
 
 void dial_tone(){
@@ -240,9 +177,9 @@ void dial_tone(){
   AD2.setFrequency((MD_AD9833::channel_t)0, 440.0);
 }
 
-// void confirmation_tone(){
-//   dual_tone(350, 440, 3, 100);
-// }
+void confirmation_tone(){
+  dual_tone(350, 440, 3, 100);
+}
 
 void disconnect_tone(){
   dual_tone(2600, 0, 1, 200);
@@ -265,6 +202,38 @@ void error_tone(){
   delay(200);
   error_sequence.start(1);
   while(error_sequence.step());
+}
+
+void startup_sequence(){
+  delay(500);
+  hook_light.on();
+  confirmation_tone();
+  hook_light.off();
+}
+
+void setup() {
+  randomizer.randomize();
+  Serial.begin(115200);
+
+  Wire.begin();
+  Wire.setClock(400000);
+
+  if(!begin_keypad(keyPad, keymap)){
+    Serial.println("Failed to begin keypad");
+  }
+
+  AD1.begin();
+  AD2.begin();
+  AD1.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
+  AD1.setMode(MD_AD9833::MODE_SINE);
+
+  AD2.setFrequency((MD_AD9833::channel_t)0, SILENT_FREQ);
+  AD2.setMode(MD_AD9833::MODE_SINE);
+
+  pinMode(HOOK_LIGHT_PIN, OUTPUT);
+  digitalWrite(HOOK_LIGHT_PIN, HIGH);
+
+  startup_sequence();
 }
 
 #define MAX_DIGITS 16
@@ -518,7 +487,7 @@ void loop()
       }
       break;
     case MODE_INITIATE_CALL:
-      hook_light_on();
+      hook_light.on();
       dial_tone();
       mode = MODE_CALL_START;
       // edge triggered key may still be pressed
@@ -530,14 +499,14 @@ void loop()
       ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "A")){
-          hook_light_off();
+          hook_light.off();
           cancel_tone();
           mode = MODE_WAITING;
           break;
         } else if(KeypadHandler::char_in_chars(ch, "*#")){
           error_tone();
           delay(200);
-          hook_light_off();
+          hook_light.off();
           cancel_tone();
           mode = MODE_WAITING;
         } 
@@ -553,14 +522,14 @@ void loop()
       ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "A")){
-          hook_light_off();
+          hook_light.off();
           cancel_tone();
           mode = MODE_WAITING;
           break;
         } else if(KeypadHandler::char_in_chars(ch, "*#")){
           error_tone();
           delay(200);
-          hook_light_off();
+          hook_light.off();
           cancel_tone();
           mode = MODE_WAITING;
         } else {
@@ -583,14 +552,14 @@ void loop()
         sound_off(0);
         // edge triggered key may still be pressed
         while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
-        hook_light_off();
+        hook_light.off();
         cancel_tone();
         mode = MODE_WAITING;
       }
       if(!step_outcome(outcome)){
         sound_off(0);
         post_routing_sound();
-        hook_light_off();
+        hook_light.off();
        mode = MODE_WAITING;
       }
       break;
