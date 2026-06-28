@@ -6,6 +6,8 @@
 #include "types.h"
 #include <random_seed.h>
 #include "hook_light.h"
+#include "tones.h"
+#include "dtmf.h"
 
 // +----------+--------------------+-------------------------+
 // | Keypad   | MF Signaling Tone  | Frequency Pair (Hz)     |
@@ -55,9 +57,11 @@ KeypadHandler keypad_handler(&keyPad, MIN_KEYPRESS_TIME);
 // #define SILENT_FREQ 1000000
 #define SILENT_FREQ 50000
 
-DtmfFreqencies dtmf;
+Dtmf dtmf;
 
 HookLight hook_light(HOOK_LIGHT_PIN);
+
+Tones tones(&AD1, &AD2, SILENT_FREQ);
 
 #define DIAL_TONE_A 350.0
 #define DIAL_TONE_B 440.0
@@ -191,9 +195,6 @@ void cancel_tone(){
 }
 
 void dial_key(int key){
-  // AD1.setFrequency(0, rows[mapr[key]]);
-  // AD2.setFrequency(0, cols[mapc[key]]);
-
   AD1.setFrequency((MD_AD9833::channel_t)0, dtmf.row_freq_from_key(key));
   AD2.setFrequency((MD_AD9833::channel_t)0, dtmf.col_freq_from_key(key));
 }

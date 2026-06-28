@@ -1,7 +1,7 @@
 #ifndef __HOOK_LIGHT_H__
 #define __HOOK_LIGHT_H__
 
-#include <Arduino.h>>
+#include <Arduino.h>
 
 class HookLight{
 public:

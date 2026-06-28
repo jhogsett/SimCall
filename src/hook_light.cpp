@@ -1,4 +1,4 @@
-#include <Arduino.h>>
+#include <Arduino.h>
 #include "hook_light.h"
 
 HookLight::HookLight(uint8_t pin){
