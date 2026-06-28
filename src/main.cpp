@@ -155,10 +155,9 @@ void setup() {
     Serial.println("Failed to begin keypad");
   }
 
-  tones.begin();
+  hook_light.begin();
 
-  pinMode(HOOK_LIGHT_PIN, OUTPUT);
-  digitalWrite(HOOK_LIGHT_PIN, HIGH);
+  tones.begin();
 
   startup_sequence();
 }

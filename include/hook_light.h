@@ -7,6 +7,8 @@ class HookLight{
 public:
     HookLight(uint8_t pin);
 
+    void begin();
+
     void on();
 
     void off();
