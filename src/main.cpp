@@ -7,6 +7,7 @@
 #include <random_seed.h>
 #include "hook_light.h"
 #include "tones.h"
+#include "audio_sequences.h"
 
 // Pins for SPI comm with the AD9833 IC
 const uint8_t PIN_DATA = 11;  ///< SPI Data pin number
@@ -33,6 +34,8 @@ HookLight hook_light(HOOK_LIGHT_PIN);
 const float SILENT_FREQ = 50000.0;
 Tones tones(&AD1, &AD2, SILENT_FREQ);
 
+AudioSequences audio_sequence(&tones);
+
 bool begin_keypad(I2CKeyPad& keypad, const char * keymap){
   if(!keypad.begin()){
     return false;
@@ -41,6 +44,8 @@ bool begin_keypad(I2CKeyPad& keypad, const char * keymap){
   keypad.loadKeyMap(const_cast<char *>(keymap));
   return true;
 }
+
+
 
 void sound_off(uint32_t data){
   tones.sound_off();
@@ -114,6 +119,8 @@ NonBlockingAction cancel_actions[4] = { cancel_tone_on, sound_off, cancel_tone_o
 int cancel_times[4] = { 50, 50, 50, 50 };
 NonBlockingSequence cancel_sequence(cancel_actions, cancel_times, 4, false);
 
+
+
 void pop(){
   hook_light.wink();
   tones.dual_tone(200, 200, 1, 7, 0);
@@ -126,12 +133,12 @@ void click(){
   hook_light.wink();
 }
 
-void cancel_tone(){
+void blocking_cancel_tone(){
   cancel_sequence.start(1);
   while(cancel_sequence.step());
 }
 
-void error_tone(){
+void blocking_error_tone(){
   delay(200);
   error_sequence.start(1);
   while(error_sequence.step());
@@ -158,6 +165,12 @@ void setup() {
   hook_light.begin();
 
   tones.begin();
+
+  // audio_sequence.ring_sequence.start(2);
+  // for(int i = 0; i < 13000; i++){
+  //   audio_sequence.ring_sequence.step();
+  //   delay(1);
+  // }
 
   startup_sequence();
 }
@@ -313,7 +326,7 @@ bool step_outcome(Outcomes outcome){
   return keep_going;
 }
 
-void pre_routing_sound(){
+void blocking_pre_routing_sound(){
   delay(random(500, 1000));
   click();
   delay(random(500, 1000));
@@ -321,7 +334,7 @@ void pre_routing_sound(){
   delay(300);
 }
 
-void post_routing_sound(){
+void blocking_post_routing_sound(){
   delay(500);
   pop();
 }
@@ -378,126 +391,126 @@ void determine_routing(char ch){
   }
 }
 
-enum Modes{
-  MODE_WAITING,
-  MODE_INITIATE_CALL,
-  MODE_CALL_START,
-  MODE_CALL_IN_PROGRESS,
-  MODE_ROUTING_START,
-  MODE_ROUTING_IN_PROGRESS,
-  MODE_COMMAND_B,
-  MODE_COMMAND_C,
-  MODE_COMMAND_D
+enum TopLevelStates{
+  TOP_LEVEL_LSTATE_WAITING,
+  TOP_LEVEL_LSTATE_INITIATE_CALL,
+  TOP_LEVEL_LSTATE_CALL_START,
+  TOP_LEVEL_LSTATE_CALL_IN_PROGRESS,
+  TOP_LEVEL_LSTATE_ROUTING_START,
+  TOP_LEVEL_LSTATE_ROUTING_IN_PROGRESS,
+  TOP_LEVEL_LSTATE_COMMAND_B,
+  TOP_LEVEL_LSTATE_COMMAND_C,
+  TOP_LEVEL_LSTATE_COMMAND_D
 };
 
-Modes mode = MODE_WAITING;
+TopLevelStates mode = TOP_LEVEL_LSTATE_WAITING;
 
 void loop()
 {
   char ch;
   switch(mode){
-    case MODE_WAITING:
+    case TOP_LEVEL_LSTATE_WAITING:
       if('\0' != (ch = keypad_handler.wait_for_char("ABCD", 1000, KeypadHandler::STATE_CONTINUED_KEY_PRESS, NULL, NULL))){
         switch(ch){
           case 'A':
-            mode = MODE_INITIATE_CALL;
+            mode = TOP_LEVEL_LSTATE_INITIATE_CALL;
             break;
           case 'B':
-            mode = MODE_COMMAND_B;
+            mode = TOP_LEVEL_LSTATE_COMMAND_B;
             break;
           case 'C':
-            mode = MODE_COMMAND_C;
+            mode = TOP_LEVEL_LSTATE_COMMAND_C;
             break;
           case 'D':
-            mode = MODE_COMMAND_D;
+            mode = TOP_LEVEL_LSTATE_COMMAND_D;
             break;
         }
       }
       break;
-    case MODE_INITIATE_CALL:
+    case TOP_LEVEL_LSTATE_INITIATE_CALL:
       hook_light.on();
       tones.dial_tone();
-      mode = MODE_CALL_START;
+      mode = TOP_LEVEL_LSTATE_CALL_START;
       // edge triggered key may still be pressed
       while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
       break;
 
-    case MODE_CALL_START:
+    case TOP_LEVEL_LSTATE_CALL_START:
       reset_call();
       ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "A")){
           hook_light.off();
-          cancel_tone();
-          mode = MODE_WAITING;
+          blocking_cancel_tone();
+          mode = TOP_LEVEL_LSTATE_WAITING;
           break;
         } else if(KeypadHandler::char_in_chars(ch, "*#")){
-          error_tone();
+          blocking_error_tone();
           delay(200);
           hook_light.off();
-          cancel_tone();
-          mode = MODE_WAITING;
+          blocking_cancel_tone();
+          mode = TOP_LEVEL_LSTATE_WAITING;
         } 
         else {
           add_digit(ch);
           determine_routing(ch);
-          mode = MODE_CALL_IN_PROGRESS;
+          mode = TOP_LEVEL_LSTATE_CALL_IN_PROGRESS;
         }
       }
       break;
 
-    case MODE_CALL_IN_PROGRESS:
+    case TOP_LEVEL_LSTATE_CALL_IN_PROGRESS:
       ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "A")){
           hook_light.off();
-          cancel_tone();
-          mode = MODE_WAITING;
+          blocking_cancel_tone();
+          mode = TOP_LEVEL_LSTATE_WAITING;
           break;
         } else if(KeypadHandler::char_in_chars(ch, "*#")){
-          error_tone();
+          blocking_error_tone();
           delay(200);
           hook_light.off();
-          cancel_tone();
-          mode = MODE_WAITING;
+          blocking_cancel_tone();
+          mode = TOP_LEVEL_LSTATE_WAITING;
         } else {
           add_digit(ch);
           if(num_digits >= digit_count){
-            mode = MODE_ROUTING_START;
+            mode = TOP_LEVEL_LSTATE_ROUTING_START;
           }
         }
       }
       break;
 
-    case MODE_ROUTING_START:
+    case TOP_LEVEL_LSTATE_ROUTING_START:
         start_outcome(determine_outcome(digits, num_digits));
-        pre_routing_sound();
-        mode = MODE_ROUTING_IN_PROGRESS; 
+        blocking_pre_routing_sound();
+        mode = TOP_LEVEL_LSTATE_ROUTING_IN_PROGRESS; 
       break;
 
-    case MODE_ROUTING_IN_PROGRESS:
+    case TOP_LEVEL_LSTATE_ROUTING_IN_PROGRESS:
       if(keypad_handler.keypad_pressed()){
         sound_off(0);
         // edge triggered key may still be pressed
         while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
         hook_light.off();
-        cancel_tone();
-        mode = MODE_WAITING;
+        blocking_cancel_tone();
+        mode = TOP_LEVEL_LSTATE_WAITING;
       }
       if(!step_outcome(outcome)){
         sound_off(0);
-        post_routing_sound();
+        blocking_post_routing_sound();
         hook_light.off();
-       mode = MODE_WAITING;
+       mode = TOP_LEVEL_LSTATE_WAITING;
       }
       break;
 
-    case MODE_COMMAND_B:
-    case MODE_COMMAND_C:
-    case MODE_COMMAND_D:
+    case TOP_LEVEL_LSTATE_COMMAND_B:
+    case TOP_LEVEL_LSTATE_COMMAND_C:
+    case TOP_LEVEL_LSTATE_COMMAND_D:
       delay(200);
       tones.disconnect_tone();
-      mode = MODE_WAITING;
+      mode = TOP_LEVEL_LSTATE_WAITING;
       break;
   }
 }

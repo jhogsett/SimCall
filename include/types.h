@@ -1,3 +1,7 @@
+#ifndef SIMCALL_TYPES_H
+#define SIMCALL_TYPES_H
+
+#include "I2CKeyPad.h"
 
 using KeypadAction = void (*)(int8_t key, char ch);
 
@@ -351,3 +355,4 @@ private:
   bool _aborted;
 };
 
+#endif
