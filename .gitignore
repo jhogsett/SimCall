@@ -33,5 +33,5 @@
 
 .pio/
 
-.vscode/
+.vscode/*
 !.vscode/extensions.json
