@@ -47,10 +47,10 @@ bool key_pressed = keypad_pressed();
     case STATE_MAYBE_KEY_PRESS:
       // if key pressed, check the time
       if(key_pressed){
-          // if key has been pressed for long enough consider it legit
-          if(_key_press_time + _min_keypress_time <= millis()){
-          _key_press_state = STATE_LEGIT_KEY_PRESS;
-          } 
+          if ((unsigned long)(millis() - _key_press_time) >= (unsigned long)_min_keypress_time) {
+            _key_press_state = STATE_LEGIT_KEY_PRESS;
+          }
+
           // otherwise, continue waiting
       } 
       // if key not pressed, it wasn't a legit key press
@@ -77,10 +77,10 @@ bool key_pressed = keypad_pressed();
     case STATE_MAYBE_KEY_RELEASE:
       // if key released, check the time
       if(!key_pressed){
-          // if key has been released for long enough consider it legit
-          if(_key_press_time + _min_keypress_time <= millis()){
-          _key_press_state = STATE_LEGIT_KEY_RELEASE;
-          } 
+          if ((unsigned long)(millis() - _key_press_time) >= (unsigned long)_min_keypress_time) {
+            _key_press_state = STATE_LEGIT_KEY_RELEASE;
+          }
+
           // otherwise, continue waiting
       } 
       // if key not released, it wasn't a legit key release
@@ -129,22 +129,22 @@ char KeypadHandler::keypad_char_wait(const char * valid_chars, int state, Keypad
 
 char KeypadHandler::wait_for_char(const char * valid_chars, unsigned long timeoutms, int completion_state, KeypadAction press_action, KeypadAction release_action)
 {
-  unsigned long timeout_time = millis() + timeoutms;
+  const unsigned long start_time = millis();
   char ch;
-  while(millis() < timeout_time){
-      // should this be STATE_CONTINUED_KEY_PRESS?
-      // ch = keypad_char_wait(valid_chars, STATE_LEGIT_KEY_PRESS, press_action, release_action);
-      ch = keypad_char_wait(valid_chars, STATE_CONTINUED_KEY_PRESS, press_action, release_action);
-      if(ch != '\0'){
+  while ((unsigned long)(millis() - start_time) < timeoutms) {
+    // should this be STATE_CONTINUED_KEY_PRESS?
+    // ch = keypad_char_wait(valid_chars, STATE_LEGIT_KEY_PRESS, press_action, release_action);
+    ch = keypad_char_wait(valid_chars, STATE_CONTINUED_KEY_PRESS, press_action, release_action);
+    if (ch != '\0') {
       // should the timeout apply here or get stuck forever on a pressed key?
-      while(millis() < timeout_time){
-          // actions have to be specified here, they're not called on the keypad_char_wait() line (?)
-          if(keypad_state_wait(completion_state, press_action, release_action)){
+      while ((unsigned long)(millis() - start_time) < timeoutms) {
+        // actions have to be specified here, they're not called on the keypad_char_wait() line (?)
+        if (keypad_state_wait(completion_state, press_action, release_action)) {
           // if(keypad_state_wait(completion_state, '\0', '\0')){
           return ch;
-          }
+        }
       }
-      }
+    }
   }
   return '\0';
 }
