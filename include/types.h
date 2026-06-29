@@ -99,12 +99,14 @@ public:
         _loop.start(_num_cycles);
         _running = true;
         _state = STATE_START_CYCLE;
-        break;
+        // break;
+        // fall through here so the first action can occur on the very first step
 
       case STATE_START_CYCLE:
         _action_iter = 0;
         _state = STATE_START_ACTION;
-        break;
+        // break;
+        // fall through here so the first action can occur on the very first step
 
       case STATE_START_ACTION:
         _action = _actions[_action_iter];
