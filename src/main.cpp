@@ -366,6 +366,7 @@ void loop()
       break;
 
     case TOP_LEVEL_STATE_ROUTING_IN_PROGRESS:
+      // any pressed key halts routing
       if(keypad_handler.keypad_pressed()){
         tones.sound_off();
         // edge triggered key may still be pressed
@@ -393,7 +394,7 @@ void loop()
 
     case TOP_LEVEL_STATE_OPCALL_START:
       reset_call();
-      ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
+      ch = keypad_handler.wait_for_char(nullptr, 1000, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "B")){
           hook_light.off();
@@ -408,7 +409,7 @@ void loop()
         //   ui_effects.blocking_cancel_tone();
         //   mode = TOP_LEVEL_STATE_WAITING;
         // } 
-        else {
+        else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
           determine_routing(ch);
           mode = TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;
@@ -417,26 +418,27 @@ void loop()
       break;
 
     case TOP_LEVEL_STATE_OPCALL_IN_PROGRESS:
-      ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
+      ch = keypad_handler.wait_for_char(nullptr, 1000, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
       if(ch != '\0'){
-        if(KeypadHandler::char_in_chars(ch, "A")){
+        if(KeypadHandler::char_in_chars(ch, "B")){
           hook_light.off();
           ui_effects.blocking_cancel_tone();
           mode = TOP_LEVEL_STATE_WAITING;
           break;
         } 
-        // else if(KeypadHandler::char_in_chars(ch, "*#")){
-        //   ui_effects.blocking_error_tone();
-        //   delay(200);
-        //   hook_light.off();
-        //   ui_effects.blocking_cancel_tone();
-        //   mode = TOP_LEVEL_STATE_WAITING;
-        // } 
-        else {
+        else if(KeypadHandler::char_in_chars(ch, "#C")){
+          // ui_effects.blocking_error_tone();
+          // delay(200);
+          // hook_light.off();
+          // ui_effects.blocking_cancel_tone();
+          // mode = TOP_LEVEL_STATE_WAITING;
+          mode = TOP_LEVEL_STATE_OPROUTING_START;
+        } 
+        else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
-          if(num_digits >= digit_count){
-            mode = TOP_LEVEL_STATE_OPROUTING_START;
-          }
+          // if(num_digits >= digit_count){
+          //   mode = TOP_LEVEL_STATE_OPROUTING_START;
+          // }
         }
       }
       break;
@@ -448,6 +450,7 @@ void loop()
       break;
 
     case TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS:
+      // any pressed key halts routing
       if(keypad_handler.keypad_pressed()){
         tones.sound_off();
         // edge triggered key may still be pressed
