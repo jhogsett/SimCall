@@ -19,6 +19,7 @@ public:
   static NonBlockingSequence uk_reorder_sequence;
   static NonBlockingSequence uk_error_sequence;
   static NonBlockingSequence cancel_sequence;
+  static NonBlockingSequence disconnect_sequence;
 
 private:
   static Tones * _pTones;
@@ -32,6 +33,7 @@ private:
   static void _error_tone2_on(uint32_t data);
   static void _error_tone3_on(uint32_t data);
   static void _cancel_tone_on(uint32_t data);
+  static void _disconnect_tone_on(uint32_t data);
 
   static NonBlockingAction _ring_actions[2];
   static int _ring_times[2];
@@ -59,6 +61,9 @@ private:
   
   static NonBlockingAction _cancel_actions[4];
   static int _cancel_times[4];
+
+  static NonBlockingAction _disconnect_actions[2];
+  static int _disconnect_times[2];
 
 };
 

@@ -264,16 +264,19 @@ void determine_routing(char ch){
 
 enum TopLevelStates : uint8_t {
   TOP_LEVEL_STATE_WAITING,
+
   TOP_LEVEL_STATE_INITIATE_CALL,
   TOP_LEVEL_STATE_CALL_START,
   TOP_LEVEL_STATE_CALL_IN_PROGRESS,
   TOP_LEVEL_STATE_ROUTING_START,
   TOP_LEVEL_STATE_ROUTING_IN_PROGRESS,
+  
   TOP_LEVEL_STATE_INITIATE_OPCALL,
   TOP_LEVEL_STATE_OPCALL_START,
   TOP_LEVEL_STATE_OPCALL_IN_PROGRESS,
   TOP_LEVEL_STATE_OPROUTING_START,
   TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS,
+  
   TOP_LEVEL_STATE_COMMAND_C,
   TOP_LEVEL_STATE_COMMAND_D
 };
@@ -386,7 +389,8 @@ void loop()
 
     case TOP_LEVEL_STATE_INITIATE_OPCALL:
       hook_light.on();
-      tones.dial_tone();
+      AudioSequences::disconnect_sequence.start(1);
+      // AudioSequences::disconnect_sequence.step();
       mode = TOP_LEVEL_STATE_OPCALL_START;
       // edge triggered key may still be pressed
       while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_opdial, action_unopdial));
@@ -394,7 +398,9 @@ void loop()
 
     case TOP_LEVEL_STATE_OPCALL_START:
       reset_call();
-      ch = keypad_handler.wait_for_char(nullptr, 1000, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
+      AudioSequences::disconnect_sequence.step();
+      // shorten wait time to 500 ms since the disconnect sequence is only 500 ms
+      ch = keypad_handler.wait_for_char(nullptr, 500, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "B")){
           hook_light.off();

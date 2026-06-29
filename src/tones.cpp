@@ -67,6 +67,11 @@ void Tones::cancel_tone_on(){
   _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
 }
 
+void Tones::disconnect_tone_on(){
+  _pDevice1->setFrequency((MD_AD9833::channel_t)0, 2600);
+  _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
+}
+
 void Tones::dual_tone(int freq1, int freq2, int times, int inter_delay, int final_delay){
   final_delay = (final_delay == -1 ? inter_delay : final_delay);
 

@@ -43,6 +43,10 @@ void AudioSequences::_cancel_tone_on(uint32_t data){
   if(_pTones) _pTones->cancel_tone_on();
 }
 
+void AudioSequences::_disconnect_tone_on(uint32_t data){
+  if(_pTones) _pTones->disconnect_tone_on();
+}
+
 NonBlockingAction AudioSequences::_ring_actions[] = { AudioSequences::_ring_on, AudioSequences::_sound_off};
 int AudioSequences::_ring_times[2] { 2000, 4000 };
 NonBlockingSequence AudioSequences::ring_sequence(_ring_actions, _ring_times, 2, true);
@@ -78,3 +82,7 @@ NonBlockingSequence AudioSequences::uk_error_sequence(_uk_error_actions, _uk_err
 NonBlockingAction AudioSequences::_cancel_actions[4] = { AudioSequences::_cancel_tone_on, AudioSequences::_sound_off, AudioSequences::_cancel_tone_on, AudioSequences::_sound_off};
 int AudioSequences::_cancel_times[4] = { 50, 50, 50, 50 };
 NonBlockingSequence AudioSequences::cancel_sequence(_cancel_actions, _cancel_times, 4, false);
+
+NonBlockingAction AudioSequences::_disconnect_actions[2] = { AudioSequences::_disconnect_tone_on, AudioSequences::_sound_off};
+int AudioSequences::_disconnect_times[2] = { 500, 0 };
+NonBlockingSequence AudioSequences::disconnect_sequence(_disconnect_actions, _disconnect_times, 2, false);
