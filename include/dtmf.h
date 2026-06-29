@@ -6,15 +6,12 @@
 class Dtmf
 {
 public:
-  Dtmf();
-
-  int row_freq_from_key(uint8_t key);
-
-  int col_freq_from_key(uint8_t key);
+  static int row_freq_from_key(uint8_t key);
+  static int col_freq_from_key(uint8_t key);
 
 private:
-  int _rows[4];
-  int _cols[4];
+  static constexpr int _rows[4] = { 697, 770, 852, 941 };
+  static constexpr int _cols[4] = { 1209, 1336, 1477, 1633 };
 };
 
 #endif

@@ -21,3 +21,4 @@ make dtmf and r1mf static
 fix use of "B" in op mode (shouldn't be kp1)
 pressing numeric key ends call while in routing state
 code 11 and code 12 sounds
+use a "ready" code opposite of "cancel" tone to enter "B" mode (2600 Hz is uncomfortable)

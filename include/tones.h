@@ -34,7 +34,7 @@ private:
     MD_AD9833 * _pDevice1;
     MD_AD9833 * _pDevice2;
     float _silent_freq;
-    static Dtmf _dtmf;
+    // static Dtmf _dtmf;
     static R1mf _r1mf;
 };
 

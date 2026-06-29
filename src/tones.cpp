@@ -3,7 +3,6 @@
 #include "dtmf.h"
 #include "r1mf.h"
 
-Dtmf Tones::_dtmf;
 R1mf Tones::_r1mf;
 
 Tones::Tones(MD_AD9833 * pDevice1, MD_AD9833 * pDevice2, float silent_freq)
@@ -106,8 +105,8 @@ void Tones::disconnect_tone(){
 
 void Tones::dial_key(uint8_t key){
   if (key <= 15) {
-    _pDevice1->setFrequency((MD_AD9833::channel_t)0, _dtmf.row_freq_from_key(key));
-    _pDevice2->setFrequency((MD_AD9833::channel_t)0, _dtmf.col_freq_from_key(key));
+    _pDevice1->setFrequency((MD_AD9833::channel_t)0, Dtmf::row_freq_from_key(key));
+    _pDevice2->setFrequency((MD_AD9833::channel_t)0, Dtmf::col_freq_from_key(key));
   }
 }
 
