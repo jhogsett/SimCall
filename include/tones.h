@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <MD_AD9833.h>
 #include "dtmf.h"
+#include "r1mf.h"
 
 class Tones
 {
@@ -26,12 +27,14 @@ public:
     void confirmation_tone();
     void disconnect_tone();
     void dial_key(uint8_t key);
+    void dial_opkey(uint8_t key);
 
 private:
     MD_AD9833 * _pDevice1;
     MD_AD9833 * _pDevice2;
     float _silent_freq;
     static Dtmf _dtmf;
+    static R1mf _r1mf;
 };
 
 #endif

@@ -14,3 +14,8 @@
 - [ ] have a semi-automatic dialing mode (press 'C' to dial a new random number)
 - [ ] have a "redial" feature (press 'D' to redial the last dialed number)
 - [ ] 'B' through 'D' hang up while dialing
+
+
+need char to key conversion using keymap
+make dtmf and r1mf static
+fix use of "B" in op mode (shouldn't be kp1)

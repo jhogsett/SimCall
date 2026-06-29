@@ -1,5 +1,11 @@
 #include "dtmf.h"
 
+// char keymap[20] = "D#0*C987B654A321INF"; // I - Invalid?, N = NoKey, F = Fail
+
+// keymap specifies the characters associated with the 4x4 keypad from the bottom right key to the top left key (right->left, then down->up)
+// this is the same order the I2CKeyPad expects
+
+
 Dtmf::Dtmf(){
   _rows[0] = 697;
   _rows[1] = 770;
