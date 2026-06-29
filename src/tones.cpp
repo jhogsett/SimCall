@@ -115,8 +115,6 @@ void Tones::dial_opkey(uint8_t key){
   if (key <= 15) {
     _pDevice1->setFrequency((MD_AD9833::channel_t)0, _r1mf.freqa_from_key(key));
     int freqb = _r1mf.freqb_from_key(key);
-    if(freqb != 0){
-      _pDevice2->setFrequency((MD_AD9833::channel_t)0, freqb);
-    }
+    _pDevice2->setFrequency((MD_AD9833::channel_t)0, (freqb == 0) ? _silent_freq : freqb);
   }
 }

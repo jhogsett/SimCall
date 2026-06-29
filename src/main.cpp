@@ -377,6 +377,7 @@ void loop()
         hook_light.off();
         ui_effects.blocking_cancel_tone();
         mode = TOP_LEVEL_STATE_WAITING;
+        break;
       }
       if(!step_outcome(outcome)){
         tones.sound_off();
@@ -398,8 +399,9 @@ void loop()
     case TOP_LEVEL_STATE_OPCALL_START:
       reset_call();
       AudioSequences::disconnect_sequence.step();
-      // shorten wait time to 500 ms since the disconnect sequence is only 500 ms
-      ch = keypad_handler.wait_for_char(nullptr, 500, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
+      // shorten wait time to 100 ms since the disconnect sequence is only 500 ms
+      // it's OK if it plays for an additional 100 ms
+      ch = keypad_handler.wait_for_char(nullptr, 100, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "B")){
           hook_light.off();
@@ -456,6 +458,7 @@ void loop()
         hook_light.off();
         ui_effects.blocking_cancel_tone();
         mode = TOP_LEVEL_STATE_WAITING;
+        break;
       }
       if(!step_outcome(outcome)){
         tones.sound_off();
