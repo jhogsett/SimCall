@@ -26,13 +26,17 @@ void UIEffects::startup_sequence(){
 
 void UIEffects::blocking_cancel_tone(){
   _paudio_sequences->cancel_sequence.start(1);
-  while(_paudio_sequences->cancel_sequence.step());
+  while(_paudio_sequences->cancel_sequence.step()){
+    delay(1);
+  }
 }
 
 void UIEffects::blocking_error_tone(){
   delay(200);
   _paudio_sequences->error_sequence.start(1);
-  while(_paudio_sequences->error_sequence.step());
+  while(_paudio_sequences->error_sequence.step()){
+    delay(1);
+  }
 }
 
 void UIEffects::blocking_pre_routing_sound(){

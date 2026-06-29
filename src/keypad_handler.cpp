@@ -12,6 +12,7 @@ bool KeypadHandler::begin()
     return false;
   }
 
+  // I2CKeyPad::loadKeyMap() incorrectly takes char* instead of const char*; cast is safe as the library does not modify the string
   _pkeypad->loadKeyMap(const_cast<char *>(_pkeymap));
   return true;
 }
