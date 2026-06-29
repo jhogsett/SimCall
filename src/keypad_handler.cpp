@@ -1,8 +1,6 @@
 #include "keypad_handler.h"
 #include "I2CKeyPad.h"
 
-using KeypadAction = void (*)(int8_t key, char ch);
-
 KeypadHandler::KeypadHandler(I2CKeyPad * pkeypad, const char * pkeymap, int min_keypress_time)
   : _pkeypad(pkeypad), _pkeymap(pkeymap), _min_keypress_time(min_keypress_time), _key_press_state(STATE_IDLE), 
   _key_press_time(0), _pressed_key(-1), _pressed_char('\0')
@@ -102,14 +100,14 @@ bool key_pressed = keypad_pressed();
   return _key_press_state;
 }
 
-bool KeypadHandler::keypad_state_wait(int state=STATE_LEGIT_KEY_RELEASE, KeypadAction press_action, KeypadAction release_action){
+bool KeypadHandler::keypad_state_wait(int state, KeypadAction press_action, KeypadAction release_action){
   if(keypad_event_step(press_action, release_action) == state){
       return true;
   }
   return false;
 }
 
-char KeypadHandler::keypad_char_wait(const char * valid_chars, int state=STATE_LEGIT_KEY_RELEASE, KeypadAction press_action, KeypadAction release_action){
+char KeypadHandler::keypad_char_wait(const char * valid_chars, int state, KeypadAction press_action, KeypadAction release_action){
   if(!keypad_state_wait(state, press_action, release_action)){
       return '\0';
   }
@@ -128,7 +126,7 @@ char KeypadHandler::keypad_char_wait(const char * valid_chars, int state=STATE_L
   return '\0';
 }
 
-char KeypadHandler::wait_for_char(const char * valid_chars, unsigned long timeoutms=1000, int completion_state=STATE_IDLE, KeypadAction press_action, KeypadAction release_action)
+char KeypadHandler::wait_for_char(const char * valid_chars, unsigned long timeoutms, int completion_state, KeypadAction press_action, KeypadAction release_action)
 {
   unsigned long timeout_time = millis() + timeoutms;
   char ch;
@@ -149,4 +147,3 @@ char KeypadHandler::wait_for_char(const char * valid_chars, unsigned long timeou
   }
   return '\0';
 }
-
