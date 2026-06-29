@@ -277,7 +277,7 @@ void loop()
   char ch;
   switch(mode){
     case TOP_LEVEL_STATE_WAITING:
-      if('\0' != (ch = keypad_handler.wait_for_char("ABCD", 1000, KeypadHandler::STATE_CONTINUED_KEY_PRESS, NULL, NULL))){
+      if('\0' != (ch = keypad_handler.wait_for_char("ABCD", 1000, KeypadHandler::STATE_CONTINUED_KEY_PRESS, nullptr, nullptr))){
         switch(ch){
           case 'A':
             mode = TOP_LEVEL_STATE_INITIATE_CALL;

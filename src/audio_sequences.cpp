@@ -8,39 +8,39 @@ void AudioSequences::init(Tones* pTones)
 }
 
 void AudioSequences::_sound_off(uint32_t data){
-  _pTones->sound_off();
+  if(_pTones) _pTones->sound_off();
 }
 
 void AudioSequences::_ring_on(uint32_t data){
-  _pTones->ring_on();
+  if(_pTones) _pTones->ring_on();
 }
 
 void AudioSequences::_busy_on(uint32_t data){
-  _pTones->busy_on();  
+  if(_pTones) _pTones->busy_on();  
 }  
 
 void AudioSequences::_uk_ring_on(uint32_t data){
-  _pTones->uk_ring_on();
+  if(_pTones) _pTones->uk_ring_on();
 }
 
 void AudioSequences::_uk_busy_on(uint32_t data){
-  _pTones->uk_busy_on();      
+  if(_pTones) _pTones->uk_busy_on();      
 }  
 
 void AudioSequences::_error_tone1_on(uint32_t data){
-  _pTones->error_tone1_on();
+  if(_pTones) _pTones->error_tone1_on();
 }
 
 void AudioSequences::_error_tone2_on(uint32_t data){
-  _pTones->error_tone2_on();
+  if(_pTones) _pTones->error_tone2_on();
 }
 
 void AudioSequences::_error_tone3_on(uint32_t data){
-  _pTones->error_tone3_on();
+  if(_pTones) _pTones->error_tone3_on();
 }
 
 void AudioSequences::_cancel_tone_on(uint32_t data){
-  _pTones->cancel_tone_on();
+  if(_pTones) _pTones->cancel_tone_on();
 }
 
 NonBlockingAction AudioSequences::_ring_actions[] = { AudioSequences::_ring_on, AudioSequences::_sound_off};

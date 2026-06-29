@@ -63,7 +63,7 @@ bool key_pressed = keypad_pressed();
       _pressed_key = _pkeypad->getLastKey();
       _pressed_char = _pkeypad->getLastChar();
       _key_press_state = STATE_CONTINUED_KEY_PRESS;
-      if(press_action != NULL){
+      if(press_action != nullptr){
           press_action(_pressed_key, _pressed_char);
       }
       break;  
@@ -92,7 +92,7 @@ bool key_pressed = keypad_pressed();
       // otherwise, act on the key release and continue with a legit key release (idle)
       _pressed_key = I2C_KEYPAD_NOKEY;
       _key_press_state = STATE_IDLE;
-      if(release_action != NULL){
+      if(release_action != nullptr){
           release_action(_pressed_key, _pressed_char);
       }
       break;
@@ -112,7 +112,7 @@ char KeypadHandler::keypad_char_wait(const char * valid_chars, int state, Keypad
   if(!keypad_state_wait(state, press_action, release_action)){
       return '\0';
   }
-  if(valid_chars == NULL){
+  if(valid_chars == nullptr){
     return _pkeypad->getLastChar();
   } else {
     const char * chariter = valid_chars;

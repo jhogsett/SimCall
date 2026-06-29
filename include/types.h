@@ -1,6 +1,8 @@
 #ifndef SIMCALL_TYPES_H
 #define SIMCALL_TYPES_H
 
+#include <Arduino.h>
+
 using NonBlockingAction = void (*)(uint32_t data);
 using NonBlockingAbort = bool (*)(uint32_t data);
 
@@ -106,7 +108,7 @@ public:
 
       case STATE_START_ACTION:
         _action = _actions[_action_iter];
-        if(_action != NULL){
+        if(_action != nullptr){
           _action(_data);
         }
 
