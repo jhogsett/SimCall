@@ -4,7 +4,6 @@ UIEffects::UIEffects(Tones * ptones, AudioSequences * paudio_sequences, HookLigh
   : _ptones(ptones), _paudio_sequences(paudio_sequences), _phook_light(phook_light)
 {}
 
-// move these to their own class
 void UIEffects::pop(){
   _phook_light->wink();
   _ptones->dual_tone(200, 200, 1, 7, 0);

@@ -89,7 +89,7 @@ bool key_pressed = keypad_pressed();
       }
     break;  
     case STATE_LEGIT_KEY_RELEASE:
-      // otherwise, act on the key release and continue with a legit key relase (idle)
+      // otherwise, act on the key release and continue with a legit key release (idle)
       _pressed_key = I2C_KEYPAD_NOKEY;
       _key_press_state = STATE_IDLE;
       if(release_action != NULL){
@@ -138,7 +138,7 @@ char KeypadHandler::wait_for_char(const char * valid_chars, unsigned long timeou
       if(ch != '\0'){
       // should the timeout apply here or get stuck forever on a pressed key?
       while(millis() < timeout_time){
-          // actions have to be specified here, they're not call on the keypad_char_wait() line (?)
+          // actions have to be specified here, they're not called on the keypad_char_wait() line (?)
           if(keypad_state_wait(completion_state, press_action, release_action)){
           // if(keypad_state_wait(completion_state, '\0', '\0')){
           return ch;

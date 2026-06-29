@@ -10,7 +10,6 @@ class UIEffects
 public:
   UIEffects(Tones * ptones, AudioSequences * paudio_sequences, HookLight * phook_light);
 
-  // move these to their own class
   void pop();
   void click();
   void startup_sequence();
