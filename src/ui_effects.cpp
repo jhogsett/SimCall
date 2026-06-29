@@ -1,7 +1,8 @@
 #include "ui_effects.h"
+#include "audio_sequences.h"
 
-UIEffects::UIEffects(Tones * ptones, AudioSequences * paudio_sequences, HookLight * phook_light) 
-  : _ptones(ptones), _paudio_sequences(paudio_sequences), _phook_light(phook_light)
+UIEffects::UIEffects(Tones * ptones, HookLight * phook_light) 
+  : _ptones(ptones), _phook_light(phook_light)
 {}
 
 void UIEffects::pop(){
@@ -24,16 +25,16 @@ void UIEffects::startup_sequence(){
 }
 
 void UIEffects::blocking_cancel_tone(){
-  _paudio_sequences->cancel_sequence.start(1);
-  while(_paudio_sequences->cancel_sequence.step()){
+  AudioSequences::cancel_sequence.start(1);
+  while(AudioSequences::cancel_sequence.step()){
     delay(1);
   }
 }
 
 void UIEffects::blocking_error_tone(){
   delay(200);
-  _paudio_sequences->error_sequence.start(1);
-  while(_paudio_sequences->error_sequence.step()){
+  AudioSequences::error_sequence.start(1);
+  while(AudioSequences::error_sequence.step()){
     delay(1);
   }
 }

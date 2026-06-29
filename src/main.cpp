@@ -30,12 +30,10 @@ MD_AD9833	AD2(PIN_DATA, PIN_CLK, PIN_FSYNC2);
 const float SILENT_FREQ = 50000.0;
 Tones tones(&AD1, &AD2, SILENT_FREQ);
 
-AudioSequences audio_sequences;
-
 const uint8_t HOOK_LIGHT_PIN = A1;
 HookLight hook_light(HOOK_LIGHT_PIN);
 
-UIEffects ui_effects(&tones, &audio_sequences, &hook_light);
+UIEffects ui_effects(&tones, &hook_light);
 
 void setup() {
   Serial.begin(115200);
@@ -52,7 +50,7 @@ void setup() {
 
   tones.begin();
 
-  audio_sequences.init(&tones);
+  AudioSequences::init(&tones);
 
   ui_effects.startup_sequence();
 }
@@ -137,31 +135,31 @@ void start_outcome(Outcomes outcome){
   if(call_type == CALL_INTL){
     switch(outcome){
       case OUTCOME_RING:
-        audio_sequences.uk_ring_sequence.start(8);
+        AudioSequences::uk_ring_sequence.start(8);
         break;
       case OUTCOME_BUSY:
-        audio_sequences.uk_busy_sequence.start(12);
+        AudioSequences::uk_busy_sequence.start(12);
         break;
       case OUTCOME_REORDER:
-        audio_sequences.uk_reorder_sequence.start(24);
+        AudioSequences::uk_reorder_sequence.start(24);
         break;
       case OUTCOME_ERROR:
-        audio_sequences.uk_error_sequence.start(10);
+        AudioSequences::uk_error_sequence.start(10);
         break;
     }
   } else {
     switch(outcome){
       case OUTCOME_RING:
-        audio_sequences.ring_sequence.start(6);
+        AudioSequences::ring_sequence.start(6);
         break;
       case OUTCOME_BUSY:
-        audio_sequences.busy_sequence.start(12);
+        AudioSequences::busy_sequence.start(12);
         break;
       case OUTCOME_REORDER:
-        audio_sequences.reorder_sequence.start(24);
+        AudioSequences::reorder_sequence.start(24);
         break;
       case OUTCOME_ERROR:
-        audio_sequences.error_sequence.start(1);
+        AudioSequences::error_sequence.start(1);
         break;
     }
   }
@@ -173,16 +171,16 @@ bool step_outcome(Outcomes outcome){
   if(call_type == CALL_INTL){
     switch(outcome){
       case OUTCOME_RING:
-        keep_going = audio_sequences.uk_ring_sequence.step();
+        keep_going = AudioSequences::uk_ring_sequence.step();
         break;
       case OUTCOME_BUSY:
-        keep_going = audio_sequences.uk_busy_sequence.step();
+        keep_going = AudioSequences::uk_busy_sequence.step();
         break;
       case OUTCOME_REORDER:
-        keep_going = audio_sequences.uk_reorder_sequence.step();
+        keep_going = AudioSequences::uk_reorder_sequence.step();
         break;
       case OUTCOME_ERROR:
-        keep_going = audio_sequences.uk_error_sequence.step();
+        keep_going = AudioSequences::uk_error_sequence.step();
         break;
       default:
         keep_going = false;
@@ -190,16 +188,16 @@ bool step_outcome(Outcomes outcome){
   } else {
     switch(outcome){
       case OUTCOME_RING:
-        keep_going = audio_sequences.ring_sequence.step();
+        keep_going = AudioSequences::ring_sequence.step();
         break;
       case OUTCOME_BUSY:
-        keep_going = audio_sequences.busy_sequence.step();
+        keep_going = AudioSequences::busy_sequence.step();
         break;
       case OUTCOME_REORDER:
-        keep_going = audio_sequences.reorder_sequence.step();
+        keep_going = AudioSequences::reorder_sequence.step();
         break;
       case OUTCOME_ERROR:
-        keep_going = audio_sequences.error_sequence.step();
+        keep_going = AudioSequences::error_sequence.step();
         break;
       default:
         keep_going = false;

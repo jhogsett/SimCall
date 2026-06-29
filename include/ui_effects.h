@@ -8,7 +8,7 @@
 class UIEffects
 {
 public:
-  UIEffects(Tones * ptones, AudioSequences * paudio_sequences, HookLight * phook_light);
+  UIEffects(Tones * ptones, HookLight * phook_light);
 
   void pop();
   void click();
@@ -21,7 +21,6 @@ public:
 private:
 
   Tones * _ptones;
-  AudioSequences * _paudio_sequences;
   HookLight * _phook_light;
 };
 
