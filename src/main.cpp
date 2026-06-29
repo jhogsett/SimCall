@@ -390,7 +390,6 @@ void loop()
     case TOP_LEVEL_STATE_INITIATE_OPCALL:
       hook_light.on();
       AudioSequences::disconnect_sequence.start(1);
-      // AudioSequences::disconnect_sequence.step();
       mode = TOP_LEVEL_STATE_OPCALL_START;
       // edge triggered key may still be pressed
       while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_opdial, action_unopdial));
@@ -408,13 +407,6 @@ void loop()
           mode = TOP_LEVEL_STATE_WAITING;
           break;
         } 
-        // else if(KeypadHandler::char_in_chars(ch, "*#")){
-        //   ui_effects.blocking_error_tone();
-        //   delay(200);
-        //   hook_light.off();
-        //   ui_effects.blocking_cancel_tone();
-        //   mode = TOP_LEVEL_STATE_WAITING;
-        // } 
         else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
           determine_routing(ch);
