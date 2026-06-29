@@ -8,6 +8,7 @@
 #include "hook_light.h"
 #include "tones.h"
 #include "audio_sequences.h"
+#include "keypad_handler.h"
 
 // Pins for SPI comm with the AD9833 IC
 const uint8_t PIN_DATA = 11;  ///< SPI Data pin number
@@ -21,12 +22,12 @@ static RandomSeed<RANDOM_SEED_PIN> randomizer;
 const uint8_t KEYPAD_ADDRESS = 0x20;
 I2CKeyPad keyPad(KEYPAD_ADDRESS);
 char keymap[20] = "D#0*C987B654A321INF";  //  N = NoKey, F = Fail
-
-MD_AD9833	AD1(PIN_DATA, PIN_CLK, PIN_FSYNC1); // Arbitrary SPI pins
-MD_AD9833	AD2(PIN_DATA, PIN_CLK, PIN_FSYNC2); // Arbitrary SPI pins
-
 const uint8_t MIN_KEYPRESS_TIME = 20;
-KeypadHandler keypad_handler(&keyPad, MIN_KEYPRESS_TIME);
+KeypadHandler keypad_handler(&keyPad, keymap, MIN_KEYPRESS_TIME);
+
+MD_AD9833	AD1(PIN_DATA, PIN_CLK, PIN_FSYNC1);
+MD_AD9833	AD2(PIN_DATA, PIN_CLK, PIN_FSYNC2);
+
 
 const uint8_t HOOK_LIGHT_PIN = A1;
 HookLight hook_light(HOOK_LIGHT_PIN);
@@ -35,15 +36,6 @@ const float SILENT_FREQ = 50000.0;
 Tones tones(&AD1, &AD2, SILENT_FREQ);
 
 AudioSequences audio_sequence(&tones);
-
-bool begin_keypad(I2CKeyPad& keypad, const char * keymap){
-  if(!keypad.begin()){
-    return false;
-  }
-
-  keypad.loadKeyMap(const_cast<char *>(keymap));
-  return true;
-}
 
 void pop(){
   hook_light.wink();
@@ -82,7 +74,7 @@ void setup() {
   Wire.begin();
   Wire.setClock(400000);
 
-  if(!begin_keypad(keyPad, keymap)){
+  if(!keypad_handler.begin()){
     Serial.println("Failed to begin keypad");
   }
 
@@ -113,7 +105,7 @@ const uint8_t INTL_COUNT = 13;
 int digit_count = 0;
 int call_type = CALL_NONE;
 
-enum Outcomes{
+enum Outcomes : uint8_t {
   OUTCOME_RING,
   OUTCOME_BUSY,
   OUTCOME_REORDER,
@@ -309,7 +301,7 @@ void determine_routing(char ch){
   }
 }
 
-enum TopLevelStates{
+enum TopLevelStates : uint8_t {
   TOP_LEVEL_LSTATE_WAITING,
   TOP_LEVEL_LSTATE_INITIATE_CALL,
   TOP_LEVEL_LSTATE_CALL_START,
