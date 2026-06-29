@@ -30,7 +30,7 @@ MD_AD9833	AD2(PIN_DATA, PIN_CLK, PIN_FSYNC2);
 const float SILENT_FREQ = 50000.0;
 Tones tones(&AD1, &AD2, SILENT_FREQ);
 
-AudioSequences audio_sequences(&tones);
+AudioSequences audio_sequences;
 
 const uint8_t HOOK_LIGHT_PIN = A1;
 HookLight hook_light(HOOK_LIGHT_PIN);
@@ -51,6 +51,8 @@ void setup() {
   hook_light.begin();
 
   tones.begin();
+
+  audio_sequences.init(&tones);
 
   ui_effects.startup_sequence();
 }

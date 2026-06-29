@@ -8,7 +8,7 @@
 class AudioSequences
 {
 public:
-  AudioSequences(Tones * pTones);
+  static void init(Tones* pTones); 
 
   static NonBlockingSequence ring_sequence;
   static NonBlockingSequence busy_sequence;

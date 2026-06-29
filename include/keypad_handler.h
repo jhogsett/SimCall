@@ -1,6 +1,7 @@
 #ifndef SIMCALL_KEYPAD_HANDLER_H 
 #define SIMCALL_KEYPAD_HANDLER_H 
 
+#include <Arduino.h>
 #include "I2CKeyPad.h"
 
 using KeypadAction = void (*)(int8_t key, char ch);

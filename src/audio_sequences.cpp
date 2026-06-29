@@ -2,7 +2,7 @@
 
 Tones* AudioSequences::_pTones = nullptr;
 
-AudioSequences::AudioSequences(Tones * pTones)
+void AudioSequences::init(Tones* pTones)
 {
   _pTones = pTones;
 }
