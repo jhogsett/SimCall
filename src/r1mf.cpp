@@ -26,49 +26,50 @@
 // |    D     | SF Control Tone    | 2600 Hz  (Single Pure)  |
 // +----------+--------------------+-------------------------+
 
-R1mf::R1mf(){
-  _freqa[0] = 2600; // D - SF
-  _freqa[1] = 1500; // # - ST
-  _freqa[2] = 1300; // 0
-  _freqa[3] = 1100; // * - KP1
-  _freqa[4] = 1500; // C - ST
-  _freqa[5] = 1100; // 9
-  _freqa[6] = 900; // 8
-  _freqa[7] = 700; // 7
-  _freqa[8] = 1300; // B - KP2
-  _freqa[9] = 1100; // 6
-  _freqa[10] = 900; // 5
-  _freqa[11] = 700; // 4
-  _freqa[12] = 1100; // A - KP1
-  _freqa[13] = 900; // 3
-  _freqa[14] = 700; // 2
-  _freqa[15] = 700; // 1
+const int R1mf::_freqa[16] PROGMEM = {
+  2600, // D - SF
+  1500, // # - ST
+  1300, // 0
+  1100, // * - KP1
+  1500, // C - ST
+  1100, // 9
+  900,  // 8
+  700,  // 7
+  1300, // B - KP2
+  1100, // 6
+  900,  // 5
+  700,  // 4
+  1100, // A - KP1
+  900,  // 3
+  700,  // 2
+  700   // 1      
+};
 
-  _freqb[0] = 0; // D - SF
-  _freqb[1] = 1700; // # - ST
-  _freqb[2] = 1500; // 0
-  _freqb[3] = 1700; // * - KP1
-  _freqb[4] = 1700; // C - ST
-  _freqb[5] = 1500; // 9
-  _freqb[6] = 1500; // 8
-  _freqb[7] = 1500; // 7
-  _freqb[8] = 1700; // B - KP2
-  _freqb[9] = 1300; // 6
-  _freqb[10] = 1300; // 5
-  _freqb[11] = 1300; // 4
-  _freqb[12] = 1700; // A - KP1
-  _freqb[13] = 1100; // 3
-  _freqb[14] = 1100; // 2
-  _freqb[15] = 900; // 1
-
-}
+const int R1mf::_freqb[16] PROGMEM = {
+  0,    // D - SF
+  1700, // # - ST
+  1500, // 0
+  1700, // * - KP1
+  1700, // C - ST
+  1500, // 9
+  1500, // 8
+  1500, // 7
+  1700, // B - KP2
+  1300, // 6
+  1300, // 5
+  1300, // 4
+  1700, // A - KP1
+  1100, // 3
+  1100, // 2
+  900   // 1       
+};
 
 int R1mf::freqa_from_key(uint8_t key){
     key = key % 16;
-    return _freqa[key];  
+    return pgm_read_word(&_freqa[key]);  
 }
 
 int R1mf::freqb_from_key(uint8_t key){
     key = key % 16;
-    return _freqb[key];  
+    return pgm_read_word(&_freqb[key]);  
 }

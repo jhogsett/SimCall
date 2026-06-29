@@ -27,16 +27,13 @@
 class R1mf
 {
 public:
+  static int freqa_from_key(uint8_t key);
 
-  R1mf();
-
-  int freqa_from_key(uint8_t key);
-
-  int freqb_from_key(uint8_t key);
+  static int freqb_from_key(uint8_t key);
 
 private:
-  int _freqa[16];
-  int _freqb[16];
+  static const int _freqa[16] PROGMEM;
+  static const int _freqb[16] PROGMEM;
 };
 
 #endif

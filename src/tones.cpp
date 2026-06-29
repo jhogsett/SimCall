@@ -3,8 +3,6 @@
 #include "dtmf.h"
 #include "r1mf.h"
 
-R1mf Tones::_r1mf;
-
 Tones::Tones(MD_AD9833 * pDevice1, MD_AD9833 * pDevice2, float silent_freq)
    : _pDevice1(pDevice1), _pDevice2(pDevice2), _silent_freq(silent_freq)
  {}
@@ -112,8 +110,8 @@ void Tones::dial_key(uint8_t key){
 
 void Tones::dial_opkey(uint8_t key){
   if (key <= 15) {
-    _pDevice1->setFrequency((MD_AD9833::channel_t)0, _r1mf.freqa_from_key(key));
-    int freqb = _r1mf.freqb_from_key(key);
+    _pDevice1->setFrequency((MD_AD9833::channel_t)0, R1mf::freqa_from_key(key));
+    int freqb = R1mf::freqb_from_key(key);
     _pDevice2->setFrequency((MD_AD9833::channel_t)0, (freqb == 0) ? _silent_freq : freqb);
   }
 }
