@@ -339,6 +339,8 @@ void loop()
       }
       break;
 
+    // TODO: the above and below states have nearly identical code to each other and the TOP_LEVEL_STATE_OPCALL_START/IN_PROGRESS states
+
     case TOP_LEVEL_STATE_CALL_IN_PROGRESS:
       ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
       if(ch != '\0'){
@@ -416,6 +418,8 @@ void loop()
         }
       }
       break;
+
+    // TODO: the above and below states have nearly identical code to each other and the TOP_LEVEL_STATE_CALL_START/IN_PROGRESS states
 
     case TOP_LEVEL_STATE_OPCALL_IN_PROGRESS:
       ch = keypad_handler.wait_for_char(nullptr, 1000, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
