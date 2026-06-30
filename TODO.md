@@ -14,3 +14,11 @@
 - [ ] have a semi-automatic dialing mode (press 'C' to dial a new random number)
 - [ ] have a "redial" feature (press 'D' to redial the last dialed number)
 - [ ] 'B' through 'D' hang up while dialing
+
+
+need char to key conversion using keymap
+make dtmf and r1mf static
+pressing numeric key ends call while in routing state
+code 11 and code 12 sounds
+use a "ready" code opposite of "cancel" tone to enter "B" mode (2600 Hz is uncomfortable)
+fix duplicate code in the top level state machine

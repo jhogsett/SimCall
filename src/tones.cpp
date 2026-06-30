@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include "tones.h"
 #include "dtmf.h"
-
-Dtmf Tones::_dtmf;
+#include "r1mf.h"
 
 Tones::Tones(MD_AD9833 * pDevice1, MD_AD9833 * pDevice2, float silent_freq)
    : _pDevice1(pDevice1), _pDevice2(pDevice2), _silent_freq(silent_freq)
@@ -65,6 +64,11 @@ void Tones::cancel_tone_on(){
   _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
 }
 
+void Tones::disconnect_tone_on(){
+  _pDevice1->setFrequency((MD_AD9833::channel_t)0, 2600);
+  _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
+}
+
 void Tones::dual_tone(int freq1, int freq2, int times, int inter_delay, int final_delay){
   final_delay = (final_delay == -1 ? inter_delay : final_delay);
 
@@ -99,7 +103,15 @@ void Tones::disconnect_tone(){
 
 void Tones::dial_key(uint8_t key){
   if (key <= 15) {
-    _pDevice1->setFrequency((MD_AD9833::channel_t)0, _dtmf.row_freq_from_key(key));
-    _pDevice2->setFrequency((MD_AD9833::channel_t)0, _dtmf.col_freq_from_key(key));
+    _pDevice1->setFrequency((MD_AD9833::channel_t)0, Dtmf::row_freq_from_key(key));
+    _pDevice2->setFrequency((MD_AD9833::channel_t)0, Dtmf::col_freq_from_key(key));
+  }
+}
+
+void Tones::dial_opkey(uint8_t key){
+  if (key <= 15) {
+    _pDevice1->setFrequency((MD_AD9833::channel_t)0, R1mf::freqa_from_key(key));
+    int freqb = R1mf::freqb_from_key(key);
+    _pDevice2->setFrequency((MD_AD9833::channel_t)0, (freqb == 0) ? _silent_freq : freqb);
   }
 }

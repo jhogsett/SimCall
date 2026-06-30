@@ -6,17 +6,12 @@
 class Dtmf
 {
 public:
-  // keymap specifies the characters associated with the 4x4 keypad from the bottom right key to the top left key (down->up, right->left)
-  // this is the same order the I2CKeyPad expects
-  Dtmf();
-
-  int row_freq_from_key(uint8_t key);
-
-  int col_freq_from_key(uint8_t key);
+  static int row_freq_from_key(uint8_t key);
+  static int col_freq_from_key(uint8_t key);
 
 private:
-  int _rows[4];
-  int _cols[4];
+  static const int _rows[4] PROGMEM;
+  static const int _cols[4] PROGMEM;
 };
 
 #endif
