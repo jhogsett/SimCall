@@ -28,12 +28,33 @@ MD_AD9833	AD1(PIN_DATA, PIN_CLK, PIN_FSYNC1);
 MD_AD9833	AD2(PIN_DATA, PIN_CLK, PIN_FSYNC2);
 
 const float SILENT_FREQ = 50000.0;
-Tones tones(&AD1, &AD2, SILENT_FREQ);
+Tones tones(&AD1, &AD2, SILENT_FREQ, &keypad_handler);
 
 const uint8_t HOOK_LIGHT_PIN = A1;
 HookLight hook_light(HOOK_LIGHT_PIN);
 
 UIEffects ui_effects(&tones, &hook_light);
+
+// using DialAction = void (*)(uint8_t key);
+
+// void dial_key_wrapper(uint8_t key)  { tones.dial_key(key); }
+// void dial_opkey_wrapper(uint8_t key){ tones.dial_opkey(key); }
+
+// void blocking_dial_sequence(const char * digits, DialAction dial_action, int digit_time, int interdigit_time){
+//   size_t length = strlen(digits);
+//   for(uint8_t i = 0; i < length; i++){
+//     char ch = digits[i];
+//     int8_t key = keypad_handler.key_from_char(digits[i]);
+//     if(key >= 0 && key <= 15){
+//       dial_action(key);
+//       delay(digit_time);
+//       tones.sound_off();
+//       if(i < length - 1){
+//         delay(interdigit_time);
+//       }
+//     }
+//   }
+// }
 
 void setup() {
   Serial.begin(115200);
@@ -51,6 +72,12 @@ void setup() {
   tones.begin();
 
   AudioSequences::init(&tones);
+  
+  // tones.blocking_dial_sequence("18005551212", 75, 100);
+
+  // delay(1000);
+
+  // tones.blocking_dial_sequence("*2138675408#", 55, 50, true);
 
   ui_effects.startup_sequence();
 }
@@ -281,26 +308,26 @@ enum TopLevelStates : uint8_t {
   TOP_LEVEL_STATE_COMMAND_D
 };
 
-TopLevelStates mode = TOP_LEVEL_STATE_WAITING;
+TopLevelStates top_level_state = TOP_LEVEL_STATE_WAITING;
 
 void loop()
 {
   char ch;
-  switch(mode){
+  switch(top_level_state){
     case TOP_LEVEL_STATE_WAITING:
       if('\0' != (ch = keypad_handler.wait_for_char("ABCD", 1000, KeypadHandler::STATE_CONTINUED_KEY_PRESS, nullptr, nullptr))){
         switch(ch){
           case 'A':
-            mode = TOP_LEVEL_STATE_INITIATE_CALL;
+            top_level_state = TOP_LEVEL_STATE_INITIATE_CALL;
             break;
           case 'B':
-            mode = TOP_LEVEL_STATE_INITIATE_OPCALL;
+            top_level_state = TOP_LEVEL_STATE_INITIATE_OPCALL;
             break;
           case 'C':
-            mode = TOP_LEVEL_STATE_COMMAND_C;
+            top_level_state = TOP_LEVEL_STATE_COMMAND_C;
             break;
           case 'D':
-            mode = TOP_LEVEL_STATE_COMMAND_D;
+            top_level_state = TOP_LEVEL_STATE_COMMAND_D;
             break;
         }
       }
@@ -310,31 +337,33 @@ void loop()
     case TOP_LEVEL_STATE_INITIATE_CALL:
       hook_light.on();
       tones.dial_tone();
-      mode = TOP_LEVEL_STATE_CALL_START;
+      top_level_state = TOP_LEVEL_STATE_CALL_START;
       // edge triggered key may still be pressed
       while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
       break;
 
     case TOP_LEVEL_STATE_CALL_START:
       reset_call();
-      ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
+      ch = keypad_handler.wait_for_char("0123456789*#AD", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "A")){
           hook_light.off();
           ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
-          break;
+          top_level_state = TOP_LEVEL_STATE_WAITING;
+        } else if(KeypadHandler::char_in_chars(ch, "D")){
+          tones.blocking_dial_sequence(digits);
+          top_level_state = TOP_LEVEL_STATE_ROUTING_START;
         } else if(KeypadHandler::char_in_chars(ch, "*#")){
           ui_effects.blocking_error_tone();
           delay(200);
           hook_light.off();
           ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
+          top_level_state = TOP_LEVEL_STATE_WAITING;
         } 
         else {
           add_digit(ch);
           determine_routing(ch);
-          mode = TOP_LEVEL_STATE_CALL_IN_PROGRESS;
+          top_level_state = TOP_LEVEL_STATE_CALL_IN_PROGRESS;
         }
       }
       break;
@@ -347,18 +376,18 @@ void loop()
         if(KeypadHandler::char_in_chars(ch, "A")){
           hook_light.off();
           ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
+          top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
         } else if(KeypadHandler::char_in_chars(ch, "*#")){
           ui_effects.blocking_error_tone();
           delay(200);
           hook_light.off();
           ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
+          top_level_state = TOP_LEVEL_STATE_WAITING;
         } else {
           add_digit(ch);
           if(num_digits >= digit_count){
-            mode = TOP_LEVEL_STATE_ROUTING_START;
+            top_level_state = TOP_LEVEL_STATE_ROUTING_START;
           }
         }
       }
@@ -367,7 +396,7 @@ void loop()
     case TOP_LEVEL_STATE_ROUTING_START:
         start_outcome(determine_outcome(digits, num_digits));
         ui_effects.blocking_pre_routing_sound();
-        mode = TOP_LEVEL_STATE_ROUTING_IN_PROGRESS; 
+        top_level_state = TOP_LEVEL_STATE_ROUTING_IN_PROGRESS; 
       break;
 
     case TOP_LEVEL_STATE_ROUTING_IN_PROGRESS:
@@ -378,14 +407,14 @@ void loop()
         while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
         hook_light.off();
         ui_effects.blocking_cancel_tone();
-        mode = TOP_LEVEL_STATE_WAITING;
+        top_level_state = TOP_LEVEL_STATE_WAITING;
         break;
       }
       if(!step_outcome(outcome)){
         tones.sound_off();
         ui_effects.blocking_post_routing_sound();
         hook_light.off();
-       mode = TOP_LEVEL_STATE_WAITING;
+       top_level_state = TOP_LEVEL_STATE_WAITING;
       }
       break;
 
@@ -393,7 +422,7 @@ void loop()
     case TOP_LEVEL_STATE_INITIATE_OPCALL:
       hook_light.on();
       AudioSequences::disconnect_sequence.start(1);
-      mode = TOP_LEVEL_STATE_OPCALL_START;
+      top_level_state = TOP_LEVEL_STATE_OPCALL_START;
       // edge triggered key may still be pressed
       while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_opdial, action_unopdial));
       break;
@@ -408,13 +437,13 @@ void loop()
         if(KeypadHandler::char_in_chars(ch, "B")){
           hook_light.off();
           ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
+          top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
         } 
         else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
           determine_routing(ch);
-          mode = TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;
+          top_level_state = TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;
         }
       }
       break;
@@ -427,7 +456,7 @@ void loop()
         if(KeypadHandler::char_in_chars(ch, "B")){
           hook_light.off();
           ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
+          top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
         } 
         else if(KeypadHandler::char_in_chars(ch, "#C")){
@@ -435,13 +464,13 @@ void loop()
           // delay(200);
           // hook_light.off();
           // ui_effects.blocking_cancel_tone();
-          // mode = TOP_LEVEL_STATE_WAITING;
-          mode = TOP_LEVEL_STATE_OPROUTING_START;
+          // top_level_state = TOP_LEVEL_STATE_WAITING;
+          top_level_state = TOP_LEVEL_STATE_OPROUTING_START;
         } 
         else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
           // if(num_digits >= digit_count){
-          //   mode = TOP_LEVEL_STATE_OPROUTING_START;
+          //   top_level_state = TOP_LEVEL_STATE_OPROUTING_START;
           // }
         }
       }
@@ -450,7 +479,7 @@ void loop()
     case TOP_LEVEL_STATE_OPROUTING_START:
         start_outcome(determine_outcome(digits, num_digits));
         ui_effects.blocking_pre_routing_sound();
-        mode = TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS; 
+        top_level_state = TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS; 
       break;
 
     case TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS:
@@ -461,14 +490,14 @@ void loop()
         while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_opdial, action_unopdial));
         hook_light.off();
         ui_effects.blocking_cancel_tone();
-        mode = TOP_LEVEL_STATE_WAITING;
+        top_level_state = TOP_LEVEL_STATE_WAITING;
         break;
       }
       if(!step_outcome(outcome)){
         tones.sound_off();
         ui_effects.blocking_post_routing_sound();
         hook_light.off();
-       mode = TOP_LEVEL_STATE_WAITING;
+       top_level_state = TOP_LEVEL_STATE_WAITING;
       }
       break;
 
@@ -476,7 +505,7 @@ void loop()
     case TOP_LEVEL_STATE_COMMAND_D:
       delay(200);
       tones.disconnect_tone();
-      mode = TOP_LEVEL_STATE_WAITING;
+      top_level_state = TOP_LEVEL_STATE_WAITING;
       break;
   }
 }

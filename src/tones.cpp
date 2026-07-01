@@ -3,8 +3,8 @@
 #include "dtmf.h"
 #include "r1mf.h"
 
-Tones::Tones(MD_AD9833 * pDevice1, MD_AD9833 * pDevice2, float silent_freq)
-   : _pDevice1(pDevice1), _pDevice2(pDevice2), _silent_freq(silent_freq)
+Tones::Tones(MD_AD9833 * pDevice1, MD_AD9833 * pDevice2, float silent_freq, KeypadHandler * pkeypad_handler)
+   : _pDevice1(pDevice1), _pDevice2(pDevice2), _silent_freq(silent_freq), _pkeypad_handler(pkeypad_handler)
  {}
 
 void Tones::begin()
@@ -113,5 +113,29 @@ void Tones::dial_opkey(uint8_t key){
     _pDevice1->setFrequency((MD_AD9833::channel_t)0, R1mf::freqa_from_key(key));
     int freqb = R1mf::freqb_from_key(key);
     _pDevice2->setFrequency((MD_AD9833::channel_t)0, (freqb == 0) ? _silent_freq : freqb);
+  }
+}
+
+// using DialAction = void (*)(uint8_t key);
+
+// void dial_key_wrapper(uint8_t key)  { tones.dial_key(key); }
+// void dial_opkey_wrapper(uint8_t key){ tones.dial_opkey(key); }
+
+void Tones::blocking_dial_sequence(const char * digits, int digit_time, int interdigit_time, bool use_opkeys){
+  size_t length = strlen(digits);
+  for(uint8_t i = 0; i < length; i++){
+    int8_t key = _pkeypad_handler->key_from_char(digits[i]);
+    if(key >= 0 && key <= 15){
+      if(use_opkeys){
+        dial_opkey(key);
+      } else {
+        dial_key(key);
+      }
+      delay(digit_time);
+      sound_off();
+      if(i < length - 1){
+        delay(interdigit_time);
+      }
+    }
   }
 }

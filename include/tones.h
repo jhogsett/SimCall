@@ -5,11 +5,12 @@
 #include <MD_AD9833.h>
 #include "dtmf.h"
 #include "r1mf.h"
+#include "keypad_handler.h"
 
 class Tones
 {
 public:
-    Tones(MD_AD9833 * pDevice1, MD_AD9833 * pDevice2, float silent_freq);
+    Tones(MD_AD9833 * pDevice1, MD_AD9833 * pDevice2, float silent_freq, KeypadHandler * _pkeypad_handler);
 
     void begin();
 
@@ -30,10 +31,16 @@ public:
     void dial_key(uint8_t key);
     void dial_opkey(uint8_t key);
 
+    static constexpr int DEFAULT_REDIAL_DIGIT_TIME = 75;
+    static constexpr int DEFAULT_REDIAL_INTERDIGIT_TIME = 75;
+
+    void blocking_dial_sequence(const char * digits, int digit_time=DEFAULT_REDIAL_DIGIT_TIME, int interdigit_time=DEFAULT_REDIAL_INTERDIGIT_TIME, bool use_opkeys=false);
+
 private:
     MD_AD9833 * _pDevice1;
     MD_AD9833 * _pDevice2;
     float _silent_freq;
+    KeypadHandler * _pkeypad_handler;
 };
 
 #endif
