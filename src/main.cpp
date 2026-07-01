@@ -105,10 +105,15 @@ bool determine_routing(){
   bool error = false;
   char digit1;
   char digit2;
-  // char digit3;
-  
-  // for non-R1 routing, any found * or # should be a routing error
-  
+  char digit3;
+
+  if(keypad_handler.char_in_chars('*', digits) || keypad_handler.char_in_chars('#', digits)){
+    routing_type = ROUTING_ERROR;
+    digit_count = ERROR_COUNT;
+    Serial.println("error count*#");
+    return false;
+  }
+
   switch(num_digits){
     case 0:
       // nothing dialed yet
@@ -130,14 +135,6 @@ bool determine_routing(){
           // first dialed digit is a 1, calling long distance
           routing_type = ROUTING_LONG;
           digit_count = LONG_COUNT;
-          break;
-        case '*':
-        case '#':
-          // first dialed digit is * or #, error
-          routing_type = ROUTING_ERROR;
-          Serial.println("error count1");
-          digit_count = ERROR_COUNT;
-          error = true;
           break;
         default:
           // first dialed digit is 2-9, calling local 
@@ -194,23 +191,15 @@ bool determine_routing(){
             break;
           }
           break;
-        case '*':
-        case '#':
-          // second dialed digit is * or #, error
-          routing_type = ROUTING_ERROR;
-          Serial.println("error count4");
-          digit_count = ERROR_COUNT;
-          error = true;
-          break;
       }
       break;
 
     case 3:
       digit1 = digits[0];
       digit2 = digits[1];
-      // digit3 = digits[2];
+      digit3 = digits[2];
   
-      switch(digit2){
+      switch(digit3){
         case '0':
           if(digit1 == '0' && digit2 == '0'){
             // third dialed digit is 0 when first two were also 0, error (this case should be caught and handled before the third digit)
@@ -279,19 +268,11 @@ bool determine_routing(){
             break;
           }
           break;
-        case '*':
-        case '#':
-          // third dialed digit is * or #, error
-          routing_type = ROUTING_ERROR;
-          Serial.println("error count12");
-          digit_count = ERROR_COUNT;
-          error = true;
-          break;
       }
       break;
   }
 
-  return error;
+  return !error;
 }
 
 void determine_oprouting(char ch){
@@ -473,6 +454,7 @@ enum TopLevelStates : uint8_t {
   TOP_LEVEL_STATE_CALL_START,
   TOP_LEVEL_STATE_CALL_IN_PROGRESS,
   TOP_LEVEL_STATE_ROUTING_START,
+  TOP_LEVEL_STATE_ROUTING_ERROR,
   TOP_LEVEL_STATE_ROUTING_IN_PROGRESS,
   
   TOP_LEVEL_STATE_INITIATE_OPCALL,
@@ -530,19 +512,25 @@ void loop()
         } else if(KeypadHandler::char_in_chars(ch, "D")){
           tones.blocking_dial_sequence(digits);
           top_level_state = TOP_LEVEL_STATE_ROUTING_START;
-        } else if(KeypadHandler::char_in_chars(ch, "*#")){
-          ui_effects.blocking_error_tone();
-          delay(200);
-          hook_light.off();
-          ui_effects.blocking_cancel_tone();
-          top_level_state = TOP_LEVEL_STATE_WAITING;
         } 
         else {
           add_digit(ch);
-          determine_routing();
+          if(!determine_routing()){
+            top_level_state = TOP_LEVEL_STATE_ROUTING_ERROR;
+            break;
+          }
           top_level_state = TOP_LEVEL_STATE_CALL_IN_PROGRESS;
         }
       }
+      break;
+
+    case TOP_LEVEL_STATE_ROUTING_ERROR:
+      reset_call();
+      ui_effects.blocking_error_tone();
+      delay(200);
+      hook_light.off();
+      ui_effects.blocking_cancel_tone();
+      top_level_state = TOP_LEVEL_STATE_WAITING;
       break;
 
     // TODO: the above and below states have nearly identical code to each other and the TOP_LEVEL_STATE_OPCALL_START/IN_PROGRESS states
@@ -555,15 +543,12 @@ void loop()
           ui_effects.blocking_cancel_tone();
           top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
-        } else if(KeypadHandler::char_in_chars(ch, "*#")){
-          ui_effects.blocking_error_tone();
-          delay(200);
-          hook_light.off();
-          ui_effects.blocking_cancel_tone();
-          top_level_state = TOP_LEVEL_STATE_WAITING;
         } else {
           add_digit(ch);
-          determine_routing();
+          if(!determine_routing()){
+            top_level_state = TOP_LEVEL_STATE_ROUTING_ERROR;
+            break;
+          }
           Serial.println(digit_count);
           Serial.println(num_digits);
           if(num_digits >= digit_count){
