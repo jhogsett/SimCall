@@ -37,3 +37,4 @@ then ? ms pause
 then KP + digits + ST 55 ms play duration 50 ms inter-digit spacing
 then normal outcome sequence
 
+error pressing "*" or "#" while dialog should be handled as a routing type

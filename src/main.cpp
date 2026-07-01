@@ -35,27 +35,6 @@ HookLight hook_light(HOOK_LIGHT_PIN);
 
 UIEffects ui_effects(&tones, &hook_light);
 
-// using DialAction = void (*)(uint8_t key);
-
-// void dial_key_wrapper(uint8_t key)  { tones.dial_key(key); }
-// void dial_opkey_wrapper(uint8_t key){ tones.dial_opkey(key); }
-
-// void blocking_dial_sequence(const char * digits, DialAction dial_action, int digit_time, int interdigit_time){
-//   size_t length = strlen(digits);
-//   for(uint8_t i = 0; i < length; i++){
-//     char ch = digits[i];
-//     int8_t key = keypad_handler.key_from_char(digits[i]);
-//     if(key >= 0 && key <= 15){
-//       dial_action(key);
-//       delay(digit_time);
-//       tones.sound_off();
-//       if(i < length - 1){
-//         delay(interdigit_time);
-//       }
-//     }
-//   }
-// }
-
 void setup() {
   Serial.begin(115200);
   randomizer.randomize();
@@ -73,34 +52,264 @@ void setup() {
 
   AudioSequences::init(&tones);
   
-  // tones.blocking_dial_sequence("18005551212", 75, 100);
-
-  // delay(1000);
-
-  // tones.blocking_dial_sequence("*2138675408#", 55, 50, true);
-
   ui_effects.startup_sequence();
 }
+
+enum RoutingTypes : uint8_t {
+  ROUTING_NONE,
+  ROUTING_LOCAL,
+  ROUTING_LONG,
+  ROUTING_OPER_OR_INTL,
+  ROUTING_INTL,
+  ROUTING_OPER,
+  ROUTING_ERROR,
+};
 
 const uint8_t MAX_DIGITS = 16;
 char digits[MAX_DIGITS+1];
 int8_t num_digits = 0;
 
-const uint8_t CALL_NONE = 0;
+// const uint8_t ROUTING_NONE = 0;
 // 867-5209
-const uint8_t CALL_LOCAL = 1;
+// const uint8_t ROUTING_LOCAL = 1;
 const uint8_t LOCAL_COUNT = 7;
 // 1-800-555-1212
-const uint8_t CALL_LONG = 2;
+// const uint8_t ROUTING_LONG = 2;
 const char LONG_PREFIX = '1';
 const uint8_t LONG_COUNT = 11;
 // 011-44-8302-1212
-const uint8_t CALL_INTL = 3;
+// const uint8_t ROUTING_INTL = 3;
 const char INTL_PREFIX = '0';
 const uint8_t INTL_COUNT = 13;
 
+const uint8_t OPER_COUNT = 1;
+const uint8_t ERROR_COUNT = 0;
+
 int digit_count = 0;
-int call_type = CALL_NONE;
+RoutingTypes routing_type = ROUTING_NONE;
+
+void reset_call(){
+  num_digits = 0;
+  digit_count = 0;
+  routing_type = ROUTING_NONE;
+}
+
+void add_digit(char ch){
+  if(num_digits < MAX_DIGITS){
+    digits[num_digits++] = ch;
+    digits[num_digits] = '\0'; // stringify
+  }
+}
+
+bool determine_routing(){
+  bool error = false;
+  char digit1;
+  char digit2;
+  // char digit3;
+  
+  // for non-R1 routing, any found * or # should be a routing error
+  
+  switch(num_digits){
+    case 0:
+      // nothing dialed yet
+      routing_type = ROUTING_NONE;
+      break;
+
+    case 1:
+      digit1 = digits[0];
+
+      switch(digit1){
+        case '0':
+          // first dialed digit is a 0, either calling operator or international
+          routing_type = ROUTING_OPER_OR_INTL;
+          digit_count = INTL_COUNT;
+          Serial.println("first digit zero");
+          Serial.println(digit_count);
+          break;
+        case '1':
+          // first dialed digit is a 1, calling long distance
+          routing_type = ROUTING_LONG;
+          digit_count = LONG_COUNT;
+          break;
+        case '*':
+        case '#':
+          // first dialed digit is * or #, error
+          routing_type = ROUTING_ERROR;
+          Serial.println("error count1");
+          digit_count = ERROR_COUNT;
+          error = true;
+          break;
+        default:
+          // first dialed digit is 2-9, calling local 
+          routing_type = ROUTING_LOCAL;
+          digit_count = LOCAL_COUNT;
+          break;
+      }
+      break;
+
+    case 2:
+      digit1 = digits[0];
+      digit2 = digits[1];
+
+      switch(digit2){
+        case '0':
+          if(digit1 == '0'){
+            // second dialed digit is 0 when first was also 0, calling (long distance) operator (without a time out)
+            routing_type = ROUTING_OPER;
+            digit_count = OPER_COUNT;
+          } else if(digit1 == '1'){
+            // second dialed digit is a 0 when first was a 1, error
+            routing_type = ROUTING_ERROR;
+            Serial.println("error count2");
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else {
+            // second dialed digit is 0 when first was a 2-9, calling local new area code-like exchange prefix
+            routing_type = ROUTING_LOCAL;
+            digit_count = LOCAL_COUNT; // account for the the leading zero
+            break;
+          }
+          break;
+        case '1':
+          if(digit1 == '0'){
+            Serial.println("01 entered");
+            // second dialed digit is 1 when first was 0, calling international or operator (assist local or long time out)
+            routing_type = ROUTING_OPER_OR_INTL;
+            digit_count = INTL_COUNT;
+            Serial.println("second digit one");
+            Serial.println(digit_count);
+
+          } else if(digit1 == '1'){
+            // second dialed digit is a 1 when first was a 1, error
+            routing_type = ROUTING_ERROR;
+            Serial.println("error count3");
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else {
+            // second dialed digit is 1 when first was a 2-9, calling local new area code-like exchange prefix
+            routing_type = ROUTING_LOCAL;
+            digit_count = LOCAL_COUNT; // account for the the leading zero
+            break;
+          }
+          break;
+        case '*':
+        case '#':
+          // second dialed digit is * or #, error
+          routing_type = ROUTING_ERROR;
+          Serial.println("error count4");
+          digit_count = ERROR_COUNT;
+          error = true;
+          break;
+      }
+      break;
+
+    case 3:
+      digit1 = digits[0];
+      digit2 = digits[1];
+      // digit3 = digits[2];
+  
+      switch(digit2){
+        case '0':
+          if(digit1 == '0' && digit2 == '0'){
+            // third dialed digit is 0 when first two were also 0, error (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            Serial.println("error count5");
+            digit_count = ERROR_COUNT;
+            error = true;
+          } else if(digit1 == '0' && digit2 == '1'){
+            // third dialed digit is a 0 when first was a 0 and second was a 1, error
+            routing_type = ROUTING_ERROR;
+            Serial.println("error count6");
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else if(digit1 == '1' && digit2 == '0'){
+            // third dialed digit is a 0 when first was a 1 and second was a 0, error  (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            Serial.println("error count7");
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else if(digit1 == '1' && digit2 == '1'){
+            // third dialed digit is a 0 when first was a 1 and second was a 1, error  (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            Serial.println("error count8");
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } 
+          else {
+            // third dialed digit is 0 when first and second was a 2-9, calling local new area code-like exchange prefix (if an exchange like 790 is allowed)
+            routing_type = ROUTING_LOCAL;
+            digit_count = LOCAL_COUNT; // account for the the leading zero
+            break;
+          }
+        case '1':
+          if(digit1 == '0' && digit2 == '0'){
+            // third dialed digit is 1 when first was 0 and second was 0, error (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            Serial.println("error count9");
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else if(digit1 == '0' && digit2 == '1'){
+            // third dialed digit is 1 when the first was 0 and the second was 1, international
+            routing_type = ROUTING_INTL;
+            digit_count = INTL_COUNT;
+          } else if(digit1 == '1' && digit2 == '0'){
+            // third dialed digit is 1 when first was 1 and second was 0, error (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            Serial.println("error count10");
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else if(digit1 == '1' && digit2 == '1'){
+            // third dialed digit is 1 when first was 1 and second was 1, error (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            Serial.println("error count11");
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else {
+            // third dialed digit is 1 when first, and second was a 2-9, calling local new area code-like exchange prefix
+            routing_type = ROUTING_LOCAL;
+            digit_count = LOCAL_COUNT; // account for the the leading zero
+            break;
+          }
+          break;
+        case '*':
+        case '#':
+          // third dialed digit is * or #, error
+          routing_type = ROUTING_ERROR;
+          Serial.println("error count12");
+          digit_count = ERROR_COUNT;
+          error = true;
+          break;
+      }
+      break;
+  }
+
+  return error;
+}
+
+void determine_oprouting(char ch){
+  switch(ch){
+    case LONG_PREFIX:
+      routing_type = ROUTING_LONG;
+      digit_count = LONG_COUNT;
+      break;
+    case INTL_PREFIX:
+      routing_type = ROUTING_INTL;
+      digit_count = INTL_COUNT;
+      break;
+    default:
+      routing_type = ROUTING_LOCAL;
+      digit_count = LOCAL_COUNT;
+      break;
+  }
+}
 
 enum Outcomes : uint8_t {
   OUTCOME_RING,
@@ -123,7 +332,7 @@ Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
 
   int r = random(0, 1000);
 
-  if(call_type == CALL_INTL){
+  if(routing_type == ROUTING_INTL){
     if(r < 580){
       outcome = OUTCOME_RING;
     } else if(r < 830){
@@ -133,7 +342,7 @@ Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
     } else {
       outcome = OUTCOME_ERROR;
     }
-  } else if(call_type == CALL_LONG)
+  } else if(routing_type == ROUTING_LONG)
   {
     if(r < 680){
       outcome = OUTCOME_RING;
@@ -159,7 +368,7 @@ Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
 }
 
 void start_outcome(Outcomes outcome){
-  if(call_type == CALL_INTL){
+  if(routing_type == ROUTING_INTL){
     switch(outcome){
       case OUTCOME_RING:
         AudioSequences::uk_ring_sequence.start(8);
@@ -195,7 +404,7 @@ void start_outcome(Outcomes outcome){
 bool step_outcome(Outcomes outcome){
   bool keep_going;
 
-  if(call_type == CALL_INTL){
+  if(routing_type == ROUTING_INTL){
     switch(outcome){
       case OUTCOME_RING:
         keep_going = AudioSequences::uk_ring_sequence.step();
@@ -254,38 +463,6 @@ void action_opdial(int8_t key, char ch){
 void action_unopdial(int8_t key, char ch){
   if(KeypadHandler::char_in_chars(ch, "0123456789*#ACD")){
     tones.sound_off();
-  }
-}
-
-void reset_call(){
-  num_digits = 0;
-  digit_count = 0;
-  call_type = CALL_NONE;
-}
-
-void add_digit(char ch){
-  if(num_digits < MAX_DIGITS){
-    digits[num_digits++] = ch;
-    digits[num_digits] = '\0'; // stringify
-  }
-}
-
-// maybe update routing as more digits come in, 911 etc.
-
-void determine_routing(char ch){
-  switch(ch){
-    case LONG_PREFIX:
-      call_type = CALL_LONG;
-      digit_count = LONG_COUNT;
-      break;
-    case INTL_PREFIX:
-      call_type = CALL_INTL;
-      digit_count = INTL_COUNT;
-      break;
-    default:
-      call_type = CALL_LOCAL;
-      digit_count = LOCAL_COUNT;
-      break;
   }
 }
 
@@ -362,7 +539,7 @@ void loop()
         } 
         else {
           add_digit(ch);
-          determine_routing(ch);
+          determine_routing();
           top_level_state = TOP_LEVEL_STATE_CALL_IN_PROGRESS;
         }
       }
@@ -386,6 +563,9 @@ void loop()
           top_level_state = TOP_LEVEL_STATE_WAITING;
         } else {
           add_digit(ch);
+          determine_routing();
+          Serial.println(digit_count);
+          Serial.println(num_digits);
           if(num_digits >= digit_count){
             top_level_state = TOP_LEVEL_STATE_ROUTING_START;
           }
@@ -442,7 +622,7 @@ void loop()
         } 
         else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
-          determine_routing(ch);
+          determine_oprouting(ch);
           top_level_state = TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;
         }
       }
