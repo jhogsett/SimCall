@@ -13,10 +13,13 @@ public:
   void pop();
   void click();
   void startup_sequence();
+  void blocking_ready_tone();
   void blocking_cancel_tone();
   void blocking_error_tone();
   void blocking_pre_routing_sound();
   void blocking_post_routing_sound();
+  void blocking_disconnect();
+  void blocking_wink();
 
 private:
 

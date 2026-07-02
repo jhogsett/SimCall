@@ -79,6 +79,10 @@ NonBlockingAction AudioSequences::_uk_error_actions[1] = { AudioSequences::_uk_b
 int AudioSequences::_uk_error_times[1] = { 1000 };
 NonBlockingSequence AudioSequences::uk_error_sequence(_uk_error_actions, _uk_error_times, 1, false);
 
+NonBlockingAction AudioSequences::_ready_actions[2] = { AudioSequences::_cancel_tone_on, AudioSequences::_sound_off};
+int AudioSequences::_ready_times[2] = { 150, 50 };
+NonBlockingSequence AudioSequences::ready_sequence(_ready_actions, _ready_times, 2, false);
+
 NonBlockingAction AudioSequences::_cancel_actions[4] = { AudioSequences::_cancel_tone_on, AudioSequences::_sound_off, AudioSequences::_cancel_tone_on, AudioSequences::_sound_off};
 int AudioSequences::_cancel_times[4] = { 50, 50, 50, 50 };
 NonBlockingSequence AudioSequences::cancel_sequence(_cancel_actions, _cancel_times, 4, false);

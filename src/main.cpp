@@ -65,7 +65,7 @@ enum RoutingTypes : uint8_t {
   ROUTING_ERROR,
 };
 
-const uint8_t MAX_DIGITS = 16;
+const uint8_t MAX_DIGITS = 22;
 char digits[MAX_DIGITS+1];
 int8_t num_digits = 0;
 
@@ -101,6 +101,20 @@ void add_digit(char ch){
   }
 }
 
+// used to prefix the digit sequence with KP1
+void insert_digit(char ch, bool skip_if_present=true){
+  Serial.println(digits);
+  if(skip_if_present == false || digits[0] != ch){
+    if(num_digits > 0){
+      for(int i = num_digits + 1; i > 0; i--){
+        digits[i] = digits[i-1];
+      }
+      digits[0] = ch;
+    }  
+  }
+  Serial.println(digits);
+}
+
 bool determine_routing(){
   bool error = false;
   char digit1;
@@ -110,7 +124,6 @@ bool determine_routing(){
   if(keypad_handler.char_in_chars('*', digits) || keypad_handler.char_in_chars('#', digits)){
     routing_type = ROUTING_ERROR;
     digit_count = ERROR_COUNT;
-    Serial.println("error count*#");
     return false;
   }
 
@@ -128,8 +141,6 @@ bool determine_routing(){
           // first dialed digit is a 0, either calling operator or international
           routing_type = ROUTING_OPER_OR_INTL;
           digit_count = INTL_COUNT;
-          Serial.println("first digit zero");
-          Serial.println(digit_count);
           break;
         case '1':
           // first dialed digit is a 1, calling long distance
@@ -157,7 +168,6 @@ bool determine_routing(){
           } else if(digit1 == '1'){
             // second dialed digit is a 0 when first was a 1, error
             routing_type = ROUTING_ERROR;
-            Serial.println("error count2");
             digit_count = ERROR_COUNT;
             error = true;
             break;
@@ -170,17 +180,13 @@ bool determine_routing(){
           break;
         case '1':
           if(digit1 == '0'){
-            Serial.println("01 entered");
             // second dialed digit is 1 when first was 0, calling international or operator (assist local or long time out)
             routing_type = ROUTING_OPER_OR_INTL;
             digit_count = INTL_COUNT;
-            Serial.println("second digit one");
-            Serial.println(digit_count);
 
           } else if(digit1 == '1'){
             // second dialed digit is a 1 when first was a 1, error
             routing_type = ROUTING_ERROR;
-            Serial.println("error count3");
             digit_count = ERROR_COUNT;
             error = true;
             break;
@@ -204,27 +210,23 @@ bool determine_routing(){
           if(digit1 == '0' && digit2 == '0'){
             // third dialed digit is 0 when first two were also 0, error (this case should be caught and handled before the third digit)
             routing_type = ROUTING_ERROR;
-            Serial.println("error count5");
             digit_count = ERROR_COUNT;
             error = true;
           } else if(digit1 == '0' && digit2 == '1'){
             // third dialed digit is a 0 when first was a 0 and second was a 1, error
             routing_type = ROUTING_ERROR;
-            Serial.println("error count6");
             digit_count = ERROR_COUNT;
             error = true;
             break;
           } else if(digit1 == '1' && digit2 == '0'){
             // third dialed digit is a 0 when first was a 1 and second was a 0, error  (this case should be caught and handled before the third digit)
             routing_type = ROUTING_ERROR;
-            Serial.println("error count7");
             digit_count = ERROR_COUNT;
             error = true;
             break;
           } else if(digit1 == '1' && digit2 == '1'){
             // third dialed digit is a 0 when first was a 1 and second was a 1, error  (this case should be caught and handled before the third digit)
             routing_type = ROUTING_ERROR;
-            Serial.println("error count8");
             digit_count = ERROR_COUNT;
             error = true;
             break;
@@ -239,7 +241,6 @@ bool determine_routing(){
           if(digit1 == '0' && digit2 == '0'){
             // third dialed digit is 1 when first was 0 and second was 0, error (this case should be caught and handled before the third digit)
             routing_type = ROUTING_ERROR;
-            Serial.println("error count9");
             digit_count = ERROR_COUNT;
             error = true;
             break;
@@ -250,14 +251,12 @@ bool determine_routing(){
           } else if(digit1 == '1' && digit2 == '0'){
             // third dialed digit is 1 when first was 1 and second was 0, error (this case should be caught and handled before the third digit)
             routing_type = ROUTING_ERROR;
-            Serial.println("error count10");
             digit_count = ERROR_COUNT;
             error = true;
             break;
           } else if(digit1 == '1' && digit2 == '1'){
             // third dialed digit is 1 when first was 1 and second was 1, error (this case should be caught and handled before the third digit)
             routing_type = ROUTING_ERROR;
-            Serial.println("error count11");
             digit_count = ERROR_COUNT;
             error = true;
             break;
@@ -460,6 +459,9 @@ enum TopLevelStates : uint8_t {
   TOP_LEVEL_STATE_INITIATE_OPCALL,
   TOP_LEVEL_STATE_OPCALL_START,
   TOP_LEVEL_STATE_OPCALL_IN_PROGRESS,
+  TOP_LEVEL_STATE_OPROUTING_DISCONNECT,
+  TOP_LEVEL_STATE_OPROUTING_WINK,
+  TOP_LEVEL_STATE_OPROUTING_AUTODIAL,
   TOP_LEVEL_STATE_OPROUTING_START,
   TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS,
   
@@ -549,8 +551,6 @@ void loop()
             top_level_state = TOP_LEVEL_STATE_ROUTING_ERROR;
             break;
           }
-          Serial.println(digit_count);
-          Serial.println(num_digits);
           if(num_digits >= digit_count){
             top_level_state = TOP_LEVEL_STATE_ROUTING_START;
           }
@@ -585,8 +585,8 @@ void loop()
 
 
     case TOP_LEVEL_STATE_INITIATE_OPCALL:
-      hook_light.on();
-      AudioSequences::disconnect_sequence.start(1);
+      // AudioSequences::ready_sequence.start(1);
+      ui_effects.blocking_ready_tone();
       top_level_state = TOP_LEVEL_STATE_OPCALL_START;
       // edge triggered key may still be pressed
       while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_opdial, action_unopdial));
@@ -594,20 +594,23 @@ void loop()
 
     case TOP_LEVEL_STATE_OPCALL_START:
       reset_call();
-      AudioSequences::disconnect_sequence.step();
-      // shorten wait time to 100 ms since the disconnect sequence is only 500 ms
-      // it's OK if it plays for an additional 100 ms
-      ch = keypad_handler.wait_for_char(nullptr, 100, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
+      // AudioSequences::ready_sequence.step();
+      // preload a KP1 tone into the digits buffer so it plays later on autodial
+      // add_digit('*');
+      ch = keypad_handler.wait_for_char(nullptr, 1000, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "B")){
           hook_light.off();
           ui_effects.blocking_cancel_tone();
           top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
+        } else if(KeypadHandler::char_in_chars(ch, "D")){
+          tones.blocking_dial_sequence(digits);
+          top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
         } 
-        else if(KeypadHandler::char_in_chars(ch, "0123456789")){
+        else if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
           add_digit(ch);
-          determine_oprouting(ch);
+          // determine_oprouting(ch);
           top_level_state = TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;
         }
       }
@@ -625,29 +628,40 @@ void loop()
           break;
         } 
         else if(KeypadHandler::char_in_chars(ch, "#C")){
-          // ui_effects.blocking_error_tone();
-          // delay(200);
-          // hook_light.off();
-          // ui_effects.blocking_cancel_tone();
-          // top_level_state = TOP_LEVEL_STATE_WAITING;
-          top_level_state = TOP_LEVEL_STATE_OPROUTING_START;
+          // load a ST tone into the digit buffer so it plays later on autodial
+          insert_digit('*');
+          add_digit('#');
+          top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
         } 
         else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
-          // if(num_digits >= digit_count){
-          //   top_level_state = TOP_LEVEL_STATE_OPROUTING_START;
-          // }
         }
       }
       break;
 
-    case TOP_LEVEL_STATE_OPROUTING_START:
-        start_outcome(determine_outcome(digits, num_digits));
-        ui_effects.blocking_pre_routing_sound();
-        top_level_state = TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS; 
+    case TOP_LEVEL_STATE_OPROUTING_DISCONNECT:
+      ui_effects.blocking_disconnect();
+      top_level_state = TOP_LEVEL_STATE_OPROUTING_WINK;
       break;
 
-    case TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS:
+    case TOP_LEVEL_STATE_OPROUTING_WINK:
+      ui_effects.blocking_wink();
+      top_level_state = TOP_LEVEL_STATE_OPROUTING_AUTODIAL;
+      break;
+
+    case TOP_LEVEL_STATE_OPROUTING_AUTODIAL:
+      tones.blocking_dial_sequence(digits, 55, 50, true);
+      top_level_state = TOP_LEVEL_STATE_OPROUTING_START;
+      break;
+
+    case TOP_LEVEL_STATE_OPROUTING_START:
+      hook_light.on();
+      start_outcome(determine_outcome(digits, num_digits));
+      ui_effects.blocking_pre_routing_sound();
+      top_level_state = TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS; 
+      break;
+
+      case TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS:
       // any pressed key halts routing
       if(keypad_handler.keypad_pressed()){
         tones.sound_off();

@@ -24,6 +24,13 @@ void UIEffects::startup_sequence(){
   _phook_light->off();
 }
 
+void UIEffects::blocking_ready_tone(){
+  AudioSequences::ready_sequence.start(1);
+  while(AudioSequences::ready_sequence.step()){
+    delay(1);
+  }
+}
+
 void UIEffects::blocking_cancel_tone(){
   AudioSequences::cancel_sequence.start(1);
   while(AudioSequences::cancel_sequence.step()){
@@ -51,3 +58,22 @@ void UIEffects::blocking_post_routing_sound(){
   delay(500);
   pop();
 }
+
+void UIEffects::blocking_disconnect(){
+  delay(500);
+  AudioSequences::disconnect_sequence.start(1);
+  while(AudioSequences::disconnect_sequence.step()){
+    delay(1);
+  }
+  delay(500);
+}
+
+void UIEffects::blocking_wink(){
+  click();
+  _phook_light->wink();
+  delay(200);
+  _phook_light->wink();
+  pop();
+  delay(200);
+}
+

@@ -18,6 +18,7 @@ public:
   static NonBlockingSequence uk_busy_sequence;
   static NonBlockingSequence uk_reorder_sequence;
   static NonBlockingSequence uk_error_sequence;
+  static NonBlockingSequence ready_sequence;
   static NonBlockingSequence cancel_sequence;
   static NonBlockingSequence disconnect_sequence;
 
@@ -59,6 +60,9 @@ private:
   static NonBlockingAction _uk_error_actions[1];
   static int _uk_error_times[1];
   
+  static NonBlockingAction _ready_actions[2];
+  static int _ready_times[2];
+
   static NonBlockingAction _cancel_actions[4];
   static int _cancel_times[4];
 
