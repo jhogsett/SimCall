@@ -34,7 +34,7 @@ public:
     static constexpr int DEFAULT_REDIAL_DIGIT_TIME = 75;
     static constexpr int DEFAULT_REDIAL_INTERDIGIT_TIME = 75;
 
-    void blocking_dial_sequence(const char * digits, int digit_time=DEFAULT_REDIAL_DIGIT_TIME, int interdigit_time=DEFAULT_REDIAL_INTERDIGIT_TIME, bool use_opkeys=false);
+    void blocking_dial_sequence(const char * digits, bool use_opkeys=false, int digit_time=DEFAULT_REDIAL_DIGIT_TIME, int interdigit_time=DEFAULT_REDIAL_INTERDIGIT_TIME);
 
 private:
     MD_AD9833 * _pDevice1;

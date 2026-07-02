@@ -274,20 +274,19 @@ bool determine_routing(){
   return !error;
 }
 
-void determine_oprouting(char ch){
-  switch(ch){
-    case LONG_PREFIX:
-      routing_type = ROUTING_LONG;
-      digit_count = LONG_COUNT;
-      break;
-    case INTL_PREFIX:
-      routing_type = ROUTING_INTL;
-      digit_count = INTL_COUNT;
-      break;
-    default:
-      routing_type = ROUTING_LOCAL;
-      digit_count = LOCAL_COUNT;
-      break;
+// operator routing is determined after the digits are cached
+// 1 44 444 44444
+// 800 555 1212
+void determine_oprouting(){
+  // for international calls assume 11 more more digits
+  // for regular calls assume less (domestic long distance won't include the intitial "1")
+  if(num_digits >= 11)
+  {
+    routing_type = ROUTING_INTL;
+  } else if(num_digits >= 10) {
+    routing_type = ROUTING_LONG;
+  } else {
+    routing_type = ROUTING_LOCAL;
   }
 }
 
@@ -585,7 +584,6 @@ void loop()
 
 
     case TOP_LEVEL_STATE_INITIATE_OPCALL:
-      // AudioSequences::ready_sequence.start(1);
       ui_effects.blocking_ready_tone();
       top_level_state = TOP_LEVEL_STATE_OPCALL_START;
       // edge triggered key may still be pressed
@@ -594,9 +592,6 @@ void loop()
 
     case TOP_LEVEL_STATE_OPCALL_START:
       reset_call();
-      // AudioSequences::ready_sequence.step();
-      // preload a KP1 tone into the digits buffer so it plays later on autodial
-      // add_digit('*');
       ch = keypad_handler.wait_for_char(nullptr, 1000, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "B")){
@@ -605,12 +600,14 @@ void loop()
           top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
         } else if(KeypadHandler::char_in_chars(ch, "D")){
-          tones.blocking_dial_sequence(digits);
+          tones.blocking_dial_sequence(digits, true);
+          determine_oprouting(); // this looks at number of digits
+          // insert_digit('*');
+          // add_digit('#');
           top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
         } 
         else if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
           add_digit(ch);
-          // determine_oprouting(ch);
           top_level_state = TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;
         }
       }
@@ -629,6 +626,7 @@ void loop()
         } 
         else if(KeypadHandler::char_in_chars(ch, "#C")){
           // load a ST tone into the digit buffer so it plays later on autodial
+          determine_oprouting(); // this looks at number of digits
           insert_digit('*');
           add_digit('#');
           top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
@@ -650,7 +648,7 @@ void loop()
       break;
 
     case TOP_LEVEL_STATE_OPROUTING_AUTODIAL:
-      tones.blocking_dial_sequence(digits, 55, 50, true);
+      tones.blocking_dial_sequence(digits, true, 55, 50);
       top_level_state = TOP_LEVEL_STATE_OPROUTING_START;
       break;
 
