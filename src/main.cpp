@@ -198,6 +198,18 @@ bool determine_routing(){
       digit2 = digits[1];
       digit3 = digits[2];
   
+      // Establish baseline routing so this function works even when called only once (e.g. redial).
+      if(digit1 == '0'){
+        routing_type = ROUTING_OPER_OR_INTL;
+        digit_count = INTL_COUNT;
+      } else if(digit1 == '1'){
+        routing_type = ROUTING_LONG;
+        digit_count = LONG_COUNT;
+      } else {
+        routing_type = ROUTING_LOCAL;
+        digit_count = LOCAL_COUNT;
+      }
+
       switch(digit3){
         case '0':
           if(digit1 == '0' && digit2 == '0'){
@@ -265,10 +277,10 @@ bool determine_routing(){
             // break;
           }
           break;
-        default:
-          routing_type = ROUTING_LOCAL;
-          digit_count = LOCAL_COUNT; // account for the the leading zero
-          break;
+        // default:
+        //   routing_type = ROUTING_LOCAL;
+        //   digit_count = LOCAL_COUNT; // account for the the leading zero
+        //   break;
 
       }
       break;
@@ -607,6 +619,7 @@ void loop()
 
 
     case TOP_LEVEL_STATE_INITIATE_OPCALL:
+      // The Off-Hook light is intentionally not turned on yet so that the "wink" can be shown after the disconnect tone is sent to connect to a far end trunk
       ui_effects.blocking_ready_tone();
       top_level_state = TOP_LEVEL_STATE_OPCALL_START;
       // edge triggered key may still be pressed
