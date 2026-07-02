@@ -190,7 +190,20 @@ bool determine_routing(){
             break;
           }
           break;
-      }
+        default:
+          // For digit2 values 2-9, keep routing based on the first digit.
+          if(digit1 == '0'){
+            routing_type = ROUTING_OPER_OR_INTL;
+            digit_count = INTL_COUNT;
+          } else if(digit1 == '1'){
+            routing_type = ROUTING_LONG;
+            digit_count = LONG_COUNT;
+          } else {
+            routing_type = ROUTING_LOCAL;
+            digit_count = LOCAL_COUNT;
+          }
+          break;      
+        }
       break;
 
     default:
@@ -663,8 +676,12 @@ void loop()
           break;
         } 
         else if(KeypadHandler::char_in_chars(ch, "#C")){
-          determine_oprouting(); // this looks at number of digits
-          top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
+          if(determine_oprouting()){ // this looks at number of digits
+            top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
+          } 
+          // alternative if needed:
+          // top_level_state = (num_digits > 0) ? TOP_LEVEL_STATE_OPROUTING_DISCONNECT
+          //                                    : TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;          
         } 
         else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
