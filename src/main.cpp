@@ -28,7 +28,7 @@ MD_AD9833	AD1(PIN_DATA, PIN_CLK, PIN_FSYNC1);
 MD_AD9833	AD2(PIN_DATA, PIN_CLK, PIN_FSYNC2);
 
 const float SILENT_FREQ = 50000.0;
-Tones tones(&AD1, &AD2, SILENT_FREQ);
+Tones tones(&AD1, &AD2, SILENT_FREQ, &keypad_handler);
 
 const uint8_t HOOK_LIGHT_PIN = A1;
 HookLight hook_light(HOOK_LIGHT_PIN);
@@ -51,29 +51,274 @@ void setup() {
   tones.begin();
 
   AudioSequences::init(&tones);
-
+  
   ui_effects.startup_sequence();
 }
 
-const uint8_t MAX_DIGITS = 16;
+// TODO: ROUTING_OPER_OR_INTL and ROUTING_OPER need corresponding behavior in determine_outcome() 
+enum RoutingTypes : uint8_t {
+  ROUTING_NONE,
+  ROUTING_LOCAL,
+  ROUTING_LONG,
+  ROUTING_OPER_OR_INTL,
+  ROUTING_INTL,
+  ROUTING_OPER,
+  ROUTING_ERROR,
+};
+
+const uint8_t MAX_DIGITS = 22;
 char digits[MAX_DIGITS+1];
 int8_t num_digits = 0;
 
-const uint8_t CALL_NONE = 0;
+// const uint8_t ROUTING_NONE = 0;
 // 867-5209
-const uint8_t CALL_LOCAL = 1;
+// const uint8_t ROUTING_LOCAL = 1;
 const uint8_t LOCAL_COUNT = 7;
 // 1-800-555-1212
-const uint8_t CALL_LONG = 2;
+// const uint8_t ROUTING_LONG = 2;
 const char LONG_PREFIX = '1';
 const uint8_t LONG_COUNT = 11;
 // 011-44-8302-1212
-const uint8_t CALL_INTL = 3;
+// const uint8_t ROUTING_INTL = 3;
 const char INTL_PREFIX = '0';
 const uint8_t INTL_COUNT = 13;
 
+const uint8_t OPER_COUNT = 1;
+const uint8_t ERROR_COUNT = 0;
+
 int digit_count = 0;
-int call_type = CALL_NONE;
+RoutingTypes routing_type = ROUTING_NONE;
+
+void reset_call(){
+  num_digits = 0;
+  digit_count = 0;
+  routing_type = ROUTING_NONE;
+}
+
+bool recall_call(){
+  num_digits = strlen(digits);
+  return(num_digits > 0);
+}
+
+void add_digit(char ch){
+  if(num_digits < MAX_DIGITS){
+    digits[num_digits++] = ch;
+    digits[num_digits] = '\0'; // stringify
+  }
+}
+
+// TODO think through the routing again, keeping in mind that "1" is dialed first for area codes
+bool determine_routing(){
+  bool error = false;
+  char digit1;
+  char digit2;
+  char digit3;
+
+  if(KeypadHandler::char_in_chars('*', digits) || KeypadHandler::char_in_chars('#', digits)){
+    routing_type = ROUTING_ERROR;
+    digit_count = ERROR_COUNT;
+    return false;
+  }
+
+  switch(num_digits){
+    case 0:
+      // nothing dialed yet
+      routing_type = ROUTING_NONE;
+      error = true;
+      break;
+
+    case 1:
+      digit1 = digits[0];
+
+      switch(digit1){
+        case '0':
+          // first dialed digit is a 0, either calling operator or international
+          routing_type = ROUTING_OPER_OR_INTL;
+          digit_count = INTL_COUNT;
+          break;
+        case '1':
+          // first dialed digit is a 1, calling long distance
+          routing_type = ROUTING_LONG;
+          digit_count = LONG_COUNT;
+          break;
+        default:
+          // first dialed digit is 2-9, calling local 
+          routing_type = ROUTING_LOCAL;
+          digit_count = LOCAL_COUNT;
+          break;
+      }
+      break;
+
+    case 2:
+      digit1 = digits[0];
+      digit2 = digits[1];
+
+      switch(digit2){
+        case '0':
+          if(digit1 == '0'){
+            // second dialed digit is 0 when first was also 0, calling (long distance) operator (without a time out)
+            routing_type = ROUTING_OPER;
+            digit_count = OPER_COUNT;
+          } else if(digit1 == '1'){
+            // second dialed digit is a 0 when first was a 1, error
+            routing_type = ROUTING_ERROR;
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else {
+            // second dialed digit is 0 when first was a 2-9, calling local new area code-like exchange prefix
+            routing_type = ROUTING_LOCAL;
+            digit_count = LOCAL_COUNT; // account for the leading zero
+            break;
+          }
+          break;
+        case '1':
+          if(digit1 == '0'){
+            // second dialed digit is 1 when first was 0, calling international or operator (assist local or long time out)
+            routing_type = ROUTING_OPER_OR_INTL;
+            digit_count = INTL_COUNT;
+
+          } else if(digit1 == '1'){
+            // second dialed digit is a 1 when first was a 1, error
+            routing_type = ROUTING_ERROR;
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else {
+            // second dialed digit is 1 when first was a 2-9, calling local new area code-like exchange prefix
+            routing_type = ROUTING_LOCAL;
+            digit_count = LOCAL_COUNT; // account for the leading one
+            break;
+          }
+          break;
+        default:
+          // For digit2 values 2-9, keep routing based on the first digit.
+          if(digit1 == '0'){
+            routing_type = ROUTING_OPER_OR_INTL;
+            digit_count = INTL_COUNT;
+          } else if(digit1 == '1'){
+            routing_type = ROUTING_LONG;
+            digit_count = LONG_COUNT;
+          } else {
+            routing_type = ROUTING_LOCAL;
+            digit_count = LOCAL_COUNT;
+          }
+          break;      
+        }
+      break;
+
+    default:
+      digit1 = digits[0];
+      digit2 = digits[1];
+      digit3 = digits[2];
+  
+      // Establish baseline routing so this function works even when called only once (e.g. redial).
+      if(digit1 == '0'){
+        routing_type = ROUTING_OPER_OR_INTL;
+        digit_count = INTL_COUNT;
+      } else if(digit1 == '1'){
+        routing_type = ROUTING_LONG;
+        digit_count = LONG_COUNT;
+      } else {
+        routing_type = ROUTING_LOCAL;
+        digit_count = LOCAL_COUNT;
+      }
+
+      switch(digit3){
+        case '0':
+          if(digit1 == '0' && digit2 == '0'){
+            // third dialed digit is 0 when first two were also 0, error (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else if(digit1 == '0' && digit2 == '1'){
+            // third dialed digit is a 0 when first was a 0 and second was a 1, error
+            routing_type = ROUTING_ERROR;
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else if(digit1 == '1' && digit2 == '0'){
+            // third dialed digit is a 0 when first was a 1 and second was a 0, error  (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else if(digit1 == '1' && digit2 == '1'){
+            // third dialed digit is a 0 when first was a 1 and second was a 1, error  (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } 
+          else {
+             // TODO: Handle NANP area codes/exchanges with 0/1 in the middle digit (e.g. 800/801) for routing.
+             // Keep baseline routing_type/digit_count for now.          
+          }
+          break;
+        case '1':
+          if(digit1 == '0' && digit2 == '0'){
+            // third dialed digit is 1 when first was 0 and second was 0, error (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else if(digit1 == '0' && digit2 == '1'){
+            // third dialed digit is 1 when the first was 0 and the second was 1, international
+            routing_type = ROUTING_INTL;
+            digit_count = INTL_COUNT;
+          } else if(digit1 == '1' && digit2 == '0'){
+            // third dialed digit is 1 when first was 1 and second was 0, error (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else if(digit1 == '1' && digit2 == '1'){
+            // third dialed digit is 1 when first was 1 and second was 1, error (this case should be caught and handled before the third digit)
+            routing_type = ROUTING_ERROR;
+            digit_count = ERROR_COUNT;
+            error = true;
+            break;
+          } else {
+             // TODO: Handle NANP area codes/exchanges with 0/1 in the middle digit (e.g. 800/801) for routing.
+             // Keep baseline routing_type/digit_count for now.
+          }
+          break;
+        // default:
+        //   routing_type = ROUTING_LOCAL;
+        //   digit_count = LOCAL_COUNT; // account for the leading zero
+        //   break;
+
+      }
+      break;
+  }
+
+  return !error;
+}
+
+// operator routing is determined after the digits are cached
+// 1 44 444 44444
+// 800 555 1212
+bool determine_oprouting(){
+  // num_digits = strlen(digits); // this has been reset by starting a new call
+
+  if(num_digits == 0){
+    return false;
+  }
+
+  // for international calls assume 11 or more digits
+  // for regular calls assume less (domestic long distance won't include the initial "1")
+  if(num_digits >= 11)
+  {
+    routing_type = ROUTING_INTL;
+  } else if(num_digits >= 10) {
+    routing_type = ROUTING_LONG;
+  } else {
+    routing_type = ROUTING_LOCAL;
+  }
+
+  return true;
+}
 
 enum Outcomes : uint8_t {
   OUTCOME_RING,
@@ -85,6 +330,10 @@ enum Outcomes : uint8_t {
 Outcomes outcome;
 
 Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
+  if(num_digits < 1){
+    return outcome = OUTCOME_ERROR;
+  }
+
   switch(pressed_digits[num_digits-1]){
     case '1':
       return outcome = OUTCOME_BUSY;
@@ -96,7 +345,7 @@ Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
 
   int r = random(0, 1000);
 
-  if(call_type == CALL_INTL){
+  if(routing_type == ROUTING_INTL){
     if(r < 580){
       outcome = OUTCOME_RING;
     } else if(r < 830){
@@ -106,7 +355,7 @@ Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
     } else {
       outcome = OUTCOME_ERROR;
     }
-  } else if(call_type == CALL_LONG)
+  } else if(routing_type == ROUTING_LONG)
   {
     if(r < 680){
       outcome = OUTCOME_RING;
@@ -132,7 +381,7 @@ Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
 }
 
 void start_outcome(Outcomes outcome){
-  if(call_type == CALL_INTL){
+  if(routing_type == ROUTING_INTL){
     switch(outcome){
       case OUTCOME_RING:
         AudioSequences::uk_ring_sequence.start(8);
@@ -168,7 +417,7 @@ void start_outcome(Outcomes outcome){
 bool step_outcome(Outcomes outcome){
   bool keep_going;
 
-  if(call_type == CALL_INTL){
+  if(routing_type == ROUTING_INTL){
     switch(outcome){
       case OUTCOME_RING:
         keep_going = AudioSequences::uk_ring_sequence.step();
@@ -219,46 +468,14 @@ void action_undial(int8_t key, char ch){
 }
 
 void action_opdial(int8_t key, char ch){
-  if(KeypadHandler::char_in_chars(ch, "0123456789*#ACD")){
+  if(KeypadHandler::char_in_chars(ch, "0123456789*#AC")){
     tones.dial_opkey(key);
   }
 }
 
 void action_unopdial(int8_t key, char ch){
-  if(KeypadHandler::char_in_chars(ch, "0123456789*#ACD")){
+  if(KeypadHandler::char_in_chars(ch, "0123456789*#AC")){
     tones.sound_off();
-  }
-}
-
-void reset_call(){
-  num_digits = 0;
-  digit_count = 0;
-  call_type = CALL_NONE;
-}
-
-void add_digit(char ch){
-  if(num_digits < MAX_DIGITS){
-    digits[num_digits++] = ch;
-    digits[num_digits] = '\0'; // stringify
-  }
-}
-
-// maybe update routing as more digits come in, 911 etc.
-
-void determine_routing(char ch){
-  switch(ch){
-    case LONG_PREFIX:
-      call_type = CALL_LONG;
-      digit_count = LONG_COUNT;
-      break;
-    case INTL_PREFIX:
-      call_type = CALL_INTL;
-      digit_count = INTL_COUNT;
-      break;
-    default:
-      call_type = CALL_LOCAL;
-      digit_count = LOCAL_COUNT;
-      break;
   }
 }
 
@@ -269,11 +486,15 @@ enum TopLevelStates : uint8_t {
   TOP_LEVEL_STATE_CALL_START,
   TOP_LEVEL_STATE_CALL_IN_PROGRESS,
   TOP_LEVEL_STATE_ROUTING_START,
+  TOP_LEVEL_STATE_ROUTING_ERROR,
   TOP_LEVEL_STATE_ROUTING_IN_PROGRESS,
   
   TOP_LEVEL_STATE_INITIATE_OPCALL,
   TOP_LEVEL_STATE_OPCALL_START,
   TOP_LEVEL_STATE_OPCALL_IN_PROGRESS,
+  TOP_LEVEL_STATE_OPROUTING_DISCONNECT,
+  TOP_LEVEL_STATE_OPROUTING_WINK,
+  TOP_LEVEL_STATE_OPROUTING_AUTODIAL,
   TOP_LEVEL_STATE_OPROUTING_START,
   TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS,
   
@@ -281,26 +502,26 @@ enum TopLevelStates : uint8_t {
   TOP_LEVEL_STATE_COMMAND_D
 };
 
-TopLevelStates mode = TOP_LEVEL_STATE_WAITING;
+TopLevelStates top_level_state = TOP_LEVEL_STATE_WAITING;
 
 void loop()
 {
   char ch;
-  switch(mode){
+  switch(top_level_state){
     case TOP_LEVEL_STATE_WAITING:
       if('\0' != (ch = keypad_handler.wait_for_char("ABCD", 1000, KeypadHandler::STATE_CONTINUED_KEY_PRESS, nullptr, nullptr))){
         switch(ch){
           case 'A':
-            mode = TOP_LEVEL_STATE_INITIATE_CALL;
+            top_level_state = TOP_LEVEL_STATE_INITIATE_CALL;
             break;
           case 'B':
-            mode = TOP_LEVEL_STATE_INITIATE_OPCALL;
+            top_level_state = TOP_LEVEL_STATE_INITIATE_OPCALL;
             break;
           case 'C':
-            mode = TOP_LEVEL_STATE_COMMAND_C;
+            top_level_state = TOP_LEVEL_STATE_COMMAND_C;
             break;
           case 'D':
-            mode = TOP_LEVEL_STATE_COMMAND_D;
+            top_level_state = TOP_LEVEL_STATE_COMMAND_D;
             break;
         }
       }
@@ -310,33 +531,49 @@ void loop()
     case TOP_LEVEL_STATE_INITIATE_CALL:
       hook_light.on();
       tones.dial_tone();
-      mode = TOP_LEVEL_STATE_CALL_START;
+      top_level_state = TOP_LEVEL_STATE_CALL_START;
       // edge triggered key may still be pressed
       while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
       break;
 
     case TOP_LEVEL_STATE_CALL_START:
       reset_call();
-      ch = keypad_handler.wait_for_char("0123456789*#A", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
+      ch = keypad_handler.wait_for_char("0123456789*#AD", 1000, KeypadHandler::STATE_IDLE, action_dial, action_undial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "A")){
           hook_light.off();
           ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
-          break;
-        } else if(KeypadHandler::char_in_chars(ch, "*#")){
-          ui_effects.blocking_error_tone();
-          delay(200);
-          hook_light.off();
-          ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
+          top_level_state = TOP_LEVEL_STATE_WAITING;
+        } else if(KeypadHandler::char_in_chars(ch, "D")){
+          if(recall_call()){
+            tones.blocking_dial_sequence(digits);
+            if(!determine_routing()){
+              top_level_state = TOP_LEVEL_STATE_ROUTING_ERROR;
+              break;
+            }
+          // top_level_state = TOP_LEVEL_STATE_ROUTING_START;
+            top_level_state = (num_digits >= digit_count) ? TOP_LEVEL_STATE_ROUTING_START
+                                                          : TOP_LEVEL_STATE_CALL_IN_PROGRESS;          
+          }
         } 
         else {
           add_digit(ch);
-          determine_routing(ch);
-          mode = TOP_LEVEL_STATE_CALL_IN_PROGRESS;
+          if(!determine_routing()){
+            top_level_state = TOP_LEVEL_STATE_ROUTING_ERROR;
+            break;
+          }
+          top_level_state = TOP_LEVEL_STATE_CALL_IN_PROGRESS;
         }
       }
+      break;
+
+    case TOP_LEVEL_STATE_ROUTING_ERROR:
+      reset_call();
+      ui_effects.blocking_error_tone();
+      delay(200);
+      hook_light.off();
+      ui_effects.blocking_cancel_tone();
+      top_level_state = TOP_LEVEL_STATE_WAITING;
       break;
 
     // TODO: the above and below states have nearly identical code to each other and the TOP_LEVEL_STATE_OPCALL_START/IN_PROGRESS states
@@ -347,18 +584,16 @@ void loop()
         if(KeypadHandler::char_in_chars(ch, "A")){
           hook_light.off();
           ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
+          top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
-        } else if(KeypadHandler::char_in_chars(ch, "*#")){
-          ui_effects.blocking_error_tone();
-          delay(200);
-          hook_light.off();
-          ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
         } else {
           add_digit(ch);
+          if(!determine_routing()){
+            top_level_state = TOP_LEVEL_STATE_ROUTING_ERROR;
+            break;
+          }
           if(num_digits >= digit_count){
-            mode = TOP_LEVEL_STATE_ROUTING_START;
+            top_level_state = TOP_LEVEL_STATE_ROUTING_START;
           }
         }
       }
@@ -367,7 +602,7 @@ void loop()
     case TOP_LEVEL_STATE_ROUTING_START:
         start_outcome(determine_outcome(digits, num_digits));
         ui_effects.blocking_pre_routing_sound();
-        mode = TOP_LEVEL_STATE_ROUTING_IN_PROGRESS; 
+        top_level_state = TOP_LEVEL_STATE_ROUTING_IN_PROGRESS; 
       break;
 
     case TOP_LEVEL_STATE_ROUTING_IN_PROGRESS:
@@ -378,43 +613,49 @@ void loop()
         while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_dial, action_undial));
         hook_light.off();
         ui_effects.blocking_cancel_tone();
-        mode = TOP_LEVEL_STATE_WAITING;
+        top_level_state = TOP_LEVEL_STATE_WAITING;
         break;
       }
       if(!step_outcome(outcome)){
         tones.sound_off();
         ui_effects.blocking_post_routing_sound();
         hook_light.off();
-       mode = TOP_LEVEL_STATE_WAITING;
+       top_level_state = TOP_LEVEL_STATE_WAITING;
       }
       break;
 
 
     case TOP_LEVEL_STATE_INITIATE_OPCALL:
-      hook_light.on();
-      AudioSequences::disconnect_sequence.start(1);
-      mode = TOP_LEVEL_STATE_OPCALL_START;
+      // The Off-Hook light is intentionally not turned on yet so that the "wink" can be shown after the disconnect tone is sent to connect to a far end trunk
+      ui_effects.blocking_ready_tone();
+      top_level_state = TOP_LEVEL_STATE_OPCALL_START;
       // edge triggered key may still be pressed
       while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_opdial, action_unopdial));
       break;
 
     case TOP_LEVEL_STATE_OPCALL_START:
       reset_call();
-      AudioSequences::disconnect_sequence.step();
-      // shorten wait time to 100 ms since the disconnect sequence is only 500 ms
-      // it's OK if it plays for an additional 100 ms
-      ch = keypad_handler.wait_for_char(nullptr, 100, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
+      ch = keypad_handler.wait_for_char(nullptr, 1000, KeypadHandler::STATE_IDLE, action_opdial, action_unopdial);
       if(ch != '\0'){
         if(KeypadHandler::char_in_chars(ch, "B")){
           hook_light.off();
           ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
+          top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
+        } else if(KeypadHandler::char_in_chars(ch, "D")){
+          if(recall_call()){
+            if(determine_oprouting()){ // this looks at number of digits
+              // the slower "redial" style dialing is done here (redundantly) to make device operation consistent
+              // dialing an operator number, and actually auto-dialing it down the trunk are to distinct operations
+              tones.blocking_dial_sequence(digits, true);
+              top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
+            }
+          }
         } 
+        // else if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
         else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
-          determine_routing(ch);
-          mode = TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;
+          top_level_state = TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;
         }
       }
       break;
@@ -427,30 +668,45 @@ void loop()
         if(KeypadHandler::char_in_chars(ch, "B")){
           hook_light.off();
           ui_effects.blocking_cancel_tone();
-          mode = TOP_LEVEL_STATE_WAITING;
+          top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
         } 
         else if(KeypadHandler::char_in_chars(ch, "#C")){
-          // ui_effects.blocking_error_tone();
-          // delay(200);
-          // hook_light.off();
-          // ui_effects.blocking_cancel_tone();
-          // mode = TOP_LEVEL_STATE_WAITING;
-          mode = TOP_LEVEL_STATE_OPROUTING_START;
+          if(determine_oprouting()){ // this looks at number of digits
+            top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
+          } 
+          // alternative if needed:
+          // top_level_state = (num_digits > 0) ? TOP_LEVEL_STATE_OPROUTING_DISCONNECT
+          //                                    : TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;          
         } 
         else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
-          // if(num_digits >= digit_count){
-          //   mode = TOP_LEVEL_STATE_OPROUTING_START;
-          // }
         }
       }
       break;
 
+    case TOP_LEVEL_STATE_OPROUTING_DISCONNECT:
+      ui_effects.blocking_disconnect();
+      top_level_state = TOP_LEVEL_STATE_OPROUTING_WINK;
+      break;
+
+    case TOP_LEVEL_STATE_OPROUTING_WINK:
+      ui_effects.blocking_wink();
+      top_level_state = TOP_LEVEL_STATE_OPROUTING_AUTODIAL;
+      break;
+
+    case TOP_LEVEL_STATE_OPROUTING_AUTODIAL:
+      // the number is intentionally auto-dialed here even if redialing is used because 
+      // of the necessary timing of key pulses for the outgoing digits after the trunk disconnect
+      tones.blocking_dial_sequence(digits, true, 55, 50);
+      top_level_state = TOP_LEVEL_STATE_OPROUTING_START;
+      break;
+
     case TOP_LEVEL_STATE_OPROUTING_START:
-        start_outcome(determine_outcome(digits, num_digits));
-        ui_effects.blocking_pre_routing_sound();
-        mode = TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS; 
+      hook_light.on();
+      start_outcome(determine_outcome(digits, num_digits));
+      ui_effects.blocking_pre_routing_sound();
+      top_level_state = TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS; 
       break;
 
     case TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS:
@@ -461,14 +717,14 @@ void loop()
         while(!keypad_handler.keypad_state_wait(KeypadHandler::STATE_IDLE, action_opdial, action_unopdial));
         hook_light.off();
         ui_effects.blocking_cancel_tone();
-        mode = TOP_LEVEL_STATE_WAITING;
+        top_level_state = TOP_LEVEL_STATE_WAITING;
         break;
       }
       if(!step_outcome(outcome)){
         tones.sound_off();
         ui_effects.blocking_post_routing_sound();
         hook_light.off();
-       mode = TOP_LEVEL_STATE_WAITING;
+       top_level_state = TOP_LEVEL_STATE_WAITING;
       }
       break;
 
@@ -476,7 +732,7 @@ void loop()
     case TOP_LEVEL_STATE_COMMAND_D:
       delay(200);
       tones.disconnect_tone();
-      mode = TOP_LEVEL_STATE_WAITING;
+      top_level_state = TOP_LEVEL_STATE_WAITING;
       break;
   }
 }

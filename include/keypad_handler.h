@@ -21,6 +21,7 @@ public:
   KeypadHandler(I2CKeyPad * pkeypad, const char * keymap, int min_keypress_time);
   bool begin();
   static bool char_in_chars(char ch, const char * chars);
+  int8_t key_from_char(char ch);
   bool keypad_pressed();
   KeypadHandler::States keypad_event_step(KeypadAction press_action, KeypadAction release_action);
   bool keypad_state_wait(int state=STATE_LEGIT_KEY_RELEASE, KeypadAction press_action = nullptr, KeypadAction release_action = nullptr);

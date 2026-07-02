@@ -22,3 +22,8 @@ pressing numeric key ends call while in routing state
 code 11 and code 12 sounds
 use a "ready" code opposite of "cancel" tone to enter "B" mode (2600 Hz is uncomfortable)
 fix duplicate code in the top level state machine
+KP2 is unreachable in "B" mode
+
+don't redial if there are no digits
+
+area codes with 0's in the middle digit like 800 801 aren't properly handled in the routing determination

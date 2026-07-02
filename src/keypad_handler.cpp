@@ -28,6 +28,19 @@ bool KeypadHandler::char_in_chars(char ch, const char * chars){
   return false;
 }
 
+int8_t KeypadHandler::key_from_char(char ch){
+  const char * chariter = _pkeymap;
+  int8_t found_key = 0;
+  while(*chariter != '\0'){
+    if(*chariter == ch){
+      return found_key;
+    }
+    chariter++;
+    found_key++;
+  }
+  return -1;
+}
+
 bool KeypadHandler::keypad_pressed(){
   return _pkeypad->isPressed();
 }
