@@ -26,4 +26,4 @@ KP2 is unreachable in "B" mode
 
 don't redial if there are no digits
 
-REGULAR ROUTING BROKEN DIALOG A 1-800 NUMBER, TAKES ONLY 7 DIGITS TOTAL
+area codes with 0's in the middle digit like 800 801 aren't properly handled in the routing determination

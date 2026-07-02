@@ -121,19 +121,21 @@ void Tones::dial_opkey(uint8_t key){
   }
 }
 
-// using DialAction = void (*)(uint8_t key);
-
-// void dial_key_wrapper(uint8_t key)  { tones.dial_key(key); }
-// void dial_opkey_wrapper(uint8_t key){ tones.dial_opkey(key); }
-
 void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int digit_time, int interdigit_time){
+  if(digits == nullptr || _pkeypad_handler == nullptr){
+    return;
+  }
+
   size_t length = strlen(digits);
+
+  // NOTE to reviewers: it's OK to disregard validation for the return value of key_from_char
+  // because, since this is a telephone simulator, there will always be "*" and "#" keys and the digits!!
 
   if(use_opkeys){
     dial_opkey(_pkeypad_handler->key_from_char('*'));
-      delay(digit_time);
-      sound_off();
-      delay(interdigit_time);
+    delay(digit_time);
+    sound_off();
+    delay(interdigit_time);
   }
 
   for(uint8_t i = 0; i < length; i++){
@@ -154,9 +156,8 @@ void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int dig
 
   if(use_opkeys){
     dial_opkey(_pkeypad_handler->key_from_char('#'));
-      delay(digit_time);
-      sound_off();
-      // delay(interdigit_time);
+    delay(digit_time);
+    sound_off();
   }
 
 }

@@ -269,15 +269,15 @@ bool determine_routing(){
 // operator routing is determined after the digits are cached
 // 1 44 444 44444
 // 800 555 1212
-void determine_oprouting(){
+bool determine_oprouting(){
   // num_digits = strlen(digits); // this has been reset by starting a new call
 
   if(num_digits == 0){
-    return;
+    return false;
   }
 
   // for international calls assume 11 or more digits
-  // for regular calls assume less (domestic long distance won't include the intitial "1")
+  // for regular calls assume less (domestic long distance won't include the initial "1")
   if(num_digits >= 11)
   {
     routing_type = ROUTING_INTL;
@@ -286,6 +286,8 @@ void determine_oprouting(){
   } else {
     routing_type = ROUTING_LOCAL;
   }
+
+  return true;
 }
 
 enum Outcomes : uint8_t {
@@ -298,6 +300,10 @@ enum Outcomes : uint8_t {
 Outcomes outcome;
 
 Outcomes determine_outcome(const char * pressed_digits, int8_t num_digits){
+  if(num_digits < 1){
+    return outcome = OUTCOME_ERROR;
+  }
+
   switch(pressed_digits[num_digits-1]){
     case '1':
       return outcome = OUTCOME_BUSY;
@@ -605,9 +611,10 @@ void loop()
           break;
         } else if(KeypadHandler::char_in_chars(ch, "D")){
           if(recall_call()){
-            determine_oprouting(); // this looks at number of digits
-            tones.blocking_dial_sequence(digits, true);
-            top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
+            if(determine_oprouting()){ // this looks at number of digits
+              tones.blocking_dial_sequence(digits, true);
+              top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
+            }
           }
         } 
         // else if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
@@ -651,6 +658,8 @@ void loop()
       break;
 
     case TOP_LEVEL_STATE_OPROUTING_AUTODIAL:
+      // the number is intentionally auto-dialed here even if redialing is used because 
+      // of the necessary timing of key pulses for the outgoing digits after the trunk disconnect
       tones.blocking_dial_sequence(digits, true, 55, 50);
       top_level_state = TOP_LEVEL_STATE_OPROUTING_START;
       break;
