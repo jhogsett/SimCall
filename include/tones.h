@@ -32,8 +32,8 @@ public:
     void dial_key(uint8_t key);
     void dial_opkey(uint8_t key);
 
-    static constexpr int DEFAULT_REDIAL_DIGIT_TIME = 75;
-    static constexpr int DEFAULT_REDIAL_INTERDIGIT_TIME = 75;
+    static constexpr int DEFAULT_REDIAL_DIGIT_TIME = 100;
+    static constexpr int DEFAULT_REDIAL_INTERDIGIT_TIME = 100;
 
     void blocking_dial_sequence(const char * digits, bool use_opkeys=false, int digit_time=DEFAULT_REDIAL_DIGIT_TIME, int interdigit_time=DEFAULT_REDIAL_INTERDIGIT_TIME);
 

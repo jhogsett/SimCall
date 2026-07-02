@@ -65,7 +65,7 @@ void Tones::cancel_tone_on(){
 }
 
 void Tones::ready_tone_on(){
-  _pDevice1->setFrequency((MD_AD9833::channel_t)0, 1209);
+  _pDevice1->setFrequency((MD_AD9833::channel_t)0, 1477);
   _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
 }
 

@@ -65,7 +65,7 @@ void UIEffects::blocking_disconnect(){
   while(AudioSequences::disconnect_sequence.step()){
     delay(1);
   }
-  delay(500);
+  delay(100);
 }
 
 void UIEffects::blocking_wink(){
