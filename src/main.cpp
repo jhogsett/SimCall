@@ -265,6 +265,11 @@ bool determine_routing(){
             // break;
           }
           break;
+        default:
+          routing_type = ROUTING_LOCAL;
+          digit_count = LOCAL_COUNT; // account for the the leading zero
+          break;
+
       }
       break;
   }
@@ -527,7 +532,9 @@ void loop()
               top_level_state = TOP_LEVEL_STATE_ROUTING_ERROR;
               break;
             }
-            top_level_state = TOP_LEVEL_STATE_ROUTING_START;
+          // top_level_state = TOP_LEVEL_STATE_ROUTING_START;
+            top_level_state = (num_digits >= digit_count) ? TOP_LEVEL_STATE_ROUTING_START
+                                                          : TOP_LEVEL_STATE_CALL_IN_PROGRESS;          
           }
         } 
         else {
