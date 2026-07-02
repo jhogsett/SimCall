@@ -143,7 +143,7 @@ void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int dig
     }
   }
 
-  for(uint8_t i = 0; i < length; i++){
+  for(size_t i = 0; i < length; i++){
     key = _pkeypad_handler->key_from_char(digits[i]);
     if(key >= 0 && key <= 15){
       if(use_opkeys){

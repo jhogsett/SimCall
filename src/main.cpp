@@ -55,6 +55,7 @@ void setup() {
   ui_effects.startup_sequence();
 }
 
+// TODO: ROUTING_OPER_OR_INTL and ROUTING_OPER need corresponding behavior in determine_outcome() 
 enum RoutingTypes : uint8_t {
   ROUTING_NONE,
   ROUTING_LOCAL,
