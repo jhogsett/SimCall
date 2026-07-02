@@ -122,7 +122,16 @@ void Tones::dial_opkey(uint8_t key){
 // void dial_opkey_wrapper(uint8_t key){ tones.dial_opkey(key); }
 
 void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int digit_time, int interdigit_time){
+  Serial.println(digits);
   size_t length = strlen(digits);
+
+  if(use_opkeys){
+    dial_opkey(_pkeypad_handler->key_from_char('*'));
+      delay(digit_time);
+      sound_off();
+      delay(interdigit_time);
+  }
+
   for(uint8_t i = 0; i < length; i++){
     int8_t key = _pkeypad_handler->key_from_char(digits[i]);
     if(key >= 0 && key <= 15){
@@ -133,9 +142,17 @@ void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int dig
       }
       delay(digit_time);
       sound_off();
-      if(i < length - 1){
+      if(use_opkeys || i != length - 1){
         delay(interdigit_time);
       }
     }
   }
+
+  if(use_opkeys){
+    dial_opkey(_pkeypad_handler->key_from_char('#'));
+      delay(digit_time);
+      sound_off();
+      // delay(interdigit_time);
+  }
+
 }

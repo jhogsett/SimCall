@@ -101,22 +101,6 @@ void add_digit(char ch){
   }
 }
 
-// used to prefix the digit sequence with KP1
-void insert_digit(char ch, bool skip_if_present=true){
-  Serial.println(digits);
-  if(skip_if_present == false || digits[0] != ch){
-    if(num_digits > 0){
-      for(int i = num_digits + 1; i > 0; i--){
-        digits[i] = digits[i-1];
-      }
-      digits[0] = ch;
-    }  
-  }
-  Serial.println(digits);
-  digits[num_digits] = '\0';
-  num_digits++;
-}
-
 bool determine_routing(){
   bool error = false;
   char digit1;
@@ -280,18 +264,24 @@ bool determine_routing(){
 // 1 44 444 44444
 // 800 555 1212
 void determine_oprouting(){
+  num_digits = strlen(digits); // this has been reset by starting a new call
+
   if(num_digits == 0){
     return;
   }
+
   // for international calls assume 11 more more digits
   // for regular calls assume less (domestic long distance won't include the intitial "1")
   if(num_digits >= 11)
   {
     routing_type = ROUTING_INTL;
+    Serial.println("intl");
   } else if(num_digits >= 10) {
     routing_type = ROUTING_LONG;
+    Serial.println("long");
   } else {
     routing_type = ROUTING_LOCAL;
+    Serial.println("local");
   }
 }
 
@@ -439,13 +429,13 @@ void action_undial(int8_t key, char ch){
 }
 
 void action_opdial(int8_t key, char ch){
-  if(KeypadHandler::char_in_chars(ch, "0123456789*#ACD")){
+  if(KeypadHandler::char_in_chars(ch, "0123456789*#AC")){
     tones.dial_opkey(key);
   }
 }
 
 void action_unopdial(int8_t key, char ch){
-  if(KeypadHandler::char_in_chars(ch, "0123456789*#ACD")){
+  if(KeypadHandler::char_in_chars(ch, "0123456789*#AC")){
     tones.sound_off();
   }
 }
@@ -605,11 +595,12 @@ void loop()
           top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
         } else if(KeypadHandler::char_in_chars(ch, "D")){
-          tones.blocking_dial_sequence(digits, true);
           determine_oprouting(); // this looks at number of digits
+          tones.blocking_dial_sequence(digits, true);
           top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
         } 
-        else if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
+        // else if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
+        else if(KeypadHandler::char_in_chars(ch, "0123456789")){
           add_digit(ch);
           top_level_state = TOP_LEVEL_STATE_OPCALL_IN_PROGRESS;
         }
@@ -630,8 +621,6 @@ void loop()
         else if(KeypadHandler::char_in_chars(ch, "#C")){
           // load a ST tone into the digit buffer so it plays later on autodial
           determine_oprouting(); // this looks at number of digits
-          insert_digit('*');
-          add_digit('#');
           top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
         } 
         else if(KeypadHandler::char_in_chars(ch, "0123456789")){
