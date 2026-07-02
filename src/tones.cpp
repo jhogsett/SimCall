@@ -135,6 +135,7 @@ void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int dig
   // because, since this is a telephone simulator, there will always be "*" and "#" keys and the digits!!
 
   if(use_opkeys){
+    // THERE IS NO NEED TO VALIDATE THE RETURN VALUE HERE, THE "*" KEY IS GUARANTEED ***ALWAYS*** TO EXIST SO STOP COMPLAINING ABOUT THIS CASE!!!
     dial_opkey(_pkeypad_handler->key_from_char('*'));
     delay(digit_time);
     sound_off();
@@ -158,6 +159,7 @@ void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int dig
   }
 
   if(use_opkeys){
+    // THERE IS NO NEED TO VALIDATE THE RETURN VALUE HERE, THE "#" KEY IS GUARANTEED ***ALWAYS*** TO EXIST SO STOP COMPLAINING ABOUT THIS CASE!!!
     dial_opkey(_pkeypad_handler->key_from_char('#'));
     delay(digit_time);
     sound_off();

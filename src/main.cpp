@@ -113,7 +113,7 @@ bool determine_routing(){
   char digit2;
   char digit3;
 
-  if(keypad_handler.char_in_chars('*', digits) || keypad_handler.char_in_chars('#', digits)){
+  if(KeypadHandler::char_in_chars('*', digits) || KeypadHandler::char_in_chars('#', digits)){
     routing_type = ROUTING_ERROR;
     digit_count = ERROR_COUNT;
     return false;
@@ -251,11 +251,8 @@ bool determine_routing(){
             break;
           } 
           else {
-            // third dialed digit is 0 when first and second was a 2-9, calling local new area code-like exchange prefix (if an exchange like 790 is allowed)
-            // the above is wrong and didn't consider that 1 is dialed ahead of area codes
-
-            // routing_type = ROUTING_LOCAL;
-            // digit_count = LOCAL_COUNT; // account for the the leading zero
+             // TODO: Handle NANP area codes/exchanges with 0/1 in the middle digit (e.g. 800/801) for routing.
+             // Keep baseline routing_type/digit_count for now.          
           }
           break;
         case '1':
@@ -282,12 +279,8 @@ bool determine_routing(){
             error = true;
             break;
           } else {
-            // third dialed digit is 1 when first, and second was a 2-9, calling local new area code-like exchange prefix
-            // the above is wrong and does consider that "1" is dialed first for long distance numbers
-
-            // routing_type = ROUTING_LOCAL;
-            // digit_count = LOCAL_COUNT; // account for the the leading zero
-            // break;
+             // TODO: Handle NANP area codes/exchanges with 0/1 in the middle digit (e.g. 800/801) for routing.
+             // Keep baseline routing_type/digit_count for now.
           }
           break;
         // default:
@@ -651,6 +644,8 @@ void loop()
         } else if(KeypadHandler::char_in_chars(ch, "D")){
           if(recall_call()){
             if(determine_oprouting()){ // this looks at number of digits
+              // the slower "redial" style dialing is done here (redundantly) to make device operation consistent
+              // dialing an operator number, and actually auto-dialing it down the trunk are to distinct operations
               tones.blocking_dial_sequence(digits, true);
               top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
             }
