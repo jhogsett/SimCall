@@ -131,19 +131,20 @@ void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int dig
     return;
   }
 
-  // NOTE to reviewers: it's OK to disregard validation for the return value of key_from_char
-  // because, since this is a telephone simulator, there will always be "*" and "#" keys and the digits!!
+  int8_t key;
 
   if(use_opkeys){
-    // THERE IS NO NEED TO VALIDATE THE RETURN VALUE HERE, THE "*" KEY IS GUARANTEED ***ALWAYS*** TO EXIST SO STOP COMPLAINING ABOUT THIS CASE!!!
-    dial_opkey(_pkeypad_handler->key_from_char('*'));
-    delay(digit_time);
-    sound_off();
-    delay(interdigit_time);
+    key = _pkeypad_handler->key_from_char('*');
+    if(key >= 0 && key <= 15){
+      dial_opkey(key);
+      delay(digit_time);
+      sound_off();
+      delay(interdigit_time);
+    }
   }
 
   for(uint8_t i = 0; i < length; i++){
-    int8_t key = _pkeypad_handler->key_from_char(digits[i]);
+    key = _pkeypad_handler->key_from_char(digits[i]);
     if(key >= 0 && key <= 15){
       if(use_opkeys){
         dial_opkey(key);
@@ -159,10 +160,11 @@ void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int dig
   }
 
   if(use_opkeys){
-    // THERE IS NO NEED TO VALIDATE THE RETURN VALUE HERE, THE "#" KEY IS GUARANTEED ***ALWAYS*** TO EXIST SO STOP COMPLAINING ABOUT THIS CASE!!!
-    dial_opkey(_pkeypad_handler->key_from_char('#'));
-    delay(digit_time);
-    sound_off();
+    key = _pkeypad_handler->key_from_char('#');
+    if(key >= 0 && key <= 15){
+      dial_opkey(key);
+      delay(digit_time);
+      sound_off();
+    }
   }
-
 }

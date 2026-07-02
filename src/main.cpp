@@ -167,7 +167,7 @@ bool determine_routing(){
           } else {
             // second dialed digit is 0 when first was a 2-9, calling local new area code-like exchange prefix
             routing_type = ROUTING_LOCAL;
-            digit_count = LOCAL_COUNT; // account for the the leading zero
+            digit_count = LOCAL_COUNT; // account for the leading zero
             break;
           }
           break;
@@ -186,7 +186,7 @@ bool determine_routing(){
           } else {
             // second dialed digit is 1 when first was a 2-9, calling local new area code-like exchange prefix
             routing_type = ROUTING_LOCAL;
-            digit_count = LOCAL_COUNT; // account for the the leading zero
+            digit_count = LOCAL_COUNT; // account for the leading one
             break;
           }
           break;
@@ -285,7 +285,7 @@ bool determine_routing(){
           break;
         // default:
         //   routing_type = ROUTING_LOCAL;
-        //   digit_count = LOCAL_COUNT; // account for the the leading zero
+        //   digit_count = LOCAL_COUNT; // account for the leading zero
         //   break;
 
       }
