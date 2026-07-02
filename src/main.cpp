@@ -94,6 +94,11 @@ void reset_call(){
   routing_type = ROUTING_NONE;
 }
 
+bool recall_call(){
+  num_digits = strlen(digits);
+  return(num_digits > 0);
+}
+
 void add_digit(char ch){
   if(num_digits < MAX_DIGITS){
     digits[num_digits++] = ch;
@@ -117,6 +122,7 @@ bool determine_routing(){
     case 0:
       // nothing dialed yet
       routing_type = ROUTING_NONE;
+      error = true;
       break;
 
     case 1:
@@ -264,24 +270,21 @@ bool determine_routing(){
 // 1 44 444 44444
 // 800 555 1212
 void determine_oprouting(){
-  num_digits = strlen(digits); // this has been reset by starting a new call
+  // num_digits = strlen(digits); // this has been reset by starting a new call
 
   if(num_digits == 0){
     return;
   }
 
-  // for international calls assume 11 more more digits
+  // for international calls assume 11 or more digits
   // for regular calls assume less (domestic long distance won't include the intitial "1")
   if(num_digits >= 11)
   {
     routing_type = ROUTING_INTL;
-    Serial.println("intl");
   } else if(num_digits >= 10) {
     routing_type = ROUTING_LONG;
-    Serial.println("long");
   } else {
     routing_type = ROUTING_LOCAL;
-    Serial.println("local");
   }
 }
 
@@ -506,8 +509,14 @@ void loop()
           ui_effects.blocking_cancel_tone();
           top_level_state = TOP_LEVEL_STATE_WAITING;
         } else if(KeypadHandler::char_in_chars(ch, "D")){
-          tones.blocking_dial_sequence(digits);
-          top_level_state = TOP_LEVEL_STATE_ROUTING_START;
+          if(recall_call()){
+            tones.blocking_dial_sequence(digits);
+            if(!determine_routing()){
+              top_level_state = TOP_LEVEL_STATE_ROUTING_ERROR;
+              break;
+            }
+            top_level_state = TOP_LEVEL_STATE_ROUTING_START;
+          }
         } 
         else {
           add_digit(ch);
@@ -595,9 +604,11 @@ void loop()
           top_level_state = TOP_LEVEL_STATE_WAITING;
           break;
         } else if(KeypadHandler::char_in_chars(ch, "D")){
-          determine_oprouting(); // this looks at number of digits
-          tones.blocking_dial_sequence(digits, true);
-          top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
+          if(recall_call()){
+            determine_oprouting(); // this looks at number of digits
+            tones.blocking_dial_sequence(digits, true);
+            top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
+          }
         } 
         // else if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
         else if(KeypadHandler::char_in_chars(ch, "0123456789")){
@@ -651,7 +662,7 @@ void loop()
       top_level_state = TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS; 
       break;
 
-      case TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS:
+    case TOP_LEVEL_STATE_OPROUTING_IN_PROGRESS:
       // any pressed key halts routing
       if(keypad_handler.keypad_pressed()){
         tones.sound_off();

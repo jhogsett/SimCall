@@ -64,6 +64,11 @@ void Tones::cancel_tone_on(){
   _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
 }
 
+void Tones::ready_tone_on(){
+  _pDevice1->setFrequency((MD_AD9833::channel_t)0, 1209);
+  _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
+}
+
 void Tones::disconnect_tone_on(){
   _pDevice1->setFrequency((MD_AD9833::channel_t)0, 2600);
   _pDevice2->setFrequency((MD_AD9833::channel_t)0, _silent_freq);
@@ -122,7 +127,6 @@ void Tones::dial_opkey(uint8_t key){
 // void dial_opkey_wrapper(uint8_t key){ tones.dial_opkey(key); }
 
 void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int digit_time, int interdigit_time){
-  Serial.println(digits);
   size_t length = strlen(digits);
 
   if(use_opkeys){

@@ -5,16 +5,16 @@ UIEffects::UIEffects(Tones * ptones, HookLight * phook_light)
   : _ptones(ptones), _phook_light(phook_light)
 {}
 
-void UIEffects::pop(){
-  _phook_light->wink();
+void UIEffects::pop(bool sound_only){
+  if(!sound_only) _phook_light->wink();
   _ptones->dual_tone(200, 200, 1, 7, 0);
-  _phook_light->wink();
+  if(!sound_only) _phook_light->wink();
 }
 
-void UIEffects::click(){
-  _phook_light->wink();
+void UIEffects::click(bool sound_only){
+  if(!sound_only) _phook_light->wink();
   _ptones->dual_tone(600, 600, 1, 3, 0);
-  _phook_light->wink();
+  if(!sound_only) _phook_light->wink();
 }
 
 void UIEffects::startup_sequence(){
@@ -69,11 +69,11 @@ void UIEffects::blocking_disconnect(){
 }
 
 void UIEffects::blocking_wink(){
-  click();
+  click(true);
   _phook_light->wink();
   delay(200);
   _phook_light->wink();
-  pop();
+  pop(true);
   delay(200);
 }
 

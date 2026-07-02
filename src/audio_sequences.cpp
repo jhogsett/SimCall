@@ -39,6 +39,10 @@ void AudioSequences::_error_tone3_on(uint32_t data){
   if(_pTones) _pTones->error_tone3_on();
 }
 
+void AudioSequences::_ready_tone_on(uint32_t data){
+  if(_pTones) _pTones->ready_tone_on();
+}
+
 void AudioSequences::_cancel_tone_on(uint32_t data){
   if(_pTones) _pTones->cancel_tone_on();
 }
@@ -79,7 +83,7 @@ NonBlockingAction AudioSequences::_uk_error_actions[1] = { AudioSequences::_uk_b
 int AudioSequences::_uk_error_times[1] = { 1000 };
 NonBlockingSequence AudioSequences::uk_error_sequence(_uk_error_actions, _uk_error_times, 1, false);
 
-NonBlockingAction AudioSequences::_ready_actions[2] = { AudioSequences::_cancel_tone_on, AudioSequences::_sound_off};
+NonBlockingAction AudioSequences::_ready_actions[2] = { AudioSequences::_ready_tone_on, AudioSequences::_sound_off};
 int AudioSequences::_ready_times[2] = { 150, 50 };
 NonBlockingSequence AudioSequences::ready_sequence(_ready_actions, _ready_times, 2, false);
 

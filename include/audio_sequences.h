@@ -33,6 +33,7 @@ private:
   static void _error_tone1_on(uint32_t data);
   static void _error_tone2_on(uint32_t data);
   static void _error_tone3_on(uint32_t data);
+  static void _ready_tone_on(uint32_t data);
   static void _cancel_tone_on(uint32_t data);
   static void _disconnect_tone_on(uint32_t data);
 

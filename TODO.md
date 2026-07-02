@@ -24,17 +24,6 @@ use a "ready" code opposite of "cancel" tone to enter "B" mode (2600 Hz is uncom
 fix duplicate code in the top level state machine
 KP2 is unreachable in "B" mode
 
+don't redial if there are no digits
 
-
-press B
-a "welcome" tone plays other than 2600 Hz
-use * (KP1) and other keys to cache the number then pressed " (ST)
-
-2600 Hz plays for ~ 500 ms
-then 100 ms pause
-(pop/click) then light is on for 200 ms (pop/click) (WINK)
-then ? ms pause
-then KP + digits + ST 55 ms play duration 50 ms inter-digit spacing
-then normal outcome sequence
-
-error pressing "*" or "#" while dialog should be handled as a routing type
+REGULAR ROUTING BROKEN DIALOG A 1-800 NUMBER, TAKES ONLY 7 DIGITS TOTAL

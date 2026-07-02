@@ -10,8 +10,8 @@ class UIEffects
 public:
   UIEffects(Tones * ptones, HookLight * phook_light);
 
-  void pop();
-  void click();
+  void pop(bool sound_only=false);
+  void click(bool sound_only=false);
   void startup_sequence();
   void blocking_ready_tone();
   void blocking_cancel_tone();
