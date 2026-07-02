@@ -106,6 +106,7 @@ void add_digit(char ch){
   }
 }
 
+// TODO think through the routing again, keeping in mine that "1" is dialed first for area codes
 bool determine_routing(){
   bool error = false;
   char digit1;
@@ -192,7 +193,7 @@ bool determine_routing(){
       }
       break;
 
-    case 3:
+    default:
       digit1 = digits[0];
       digit2 = digits[1];
       digit3 = digits[2];
@@ -204,6 +205,7 @@ bool determine_routing(){
             routing_type = ROUTING_ERROR;
             digit_count = ERROR_COUNT;
             error = true;
+            break;
           } else if(digit1 == '0' && digit2 == '1'){
             // third dialed digit is a 0 when first was a 0 and second was a 1, error
             routing_type = ROUTING_ERROR;
@@ -225,9 +227,11 @@ bool determine_routing(){
           } 
           else {
             // third dialed digit is 0 when first and second was a 2-9, calling local new area code-like exchange prefix (if an exchange like 790 is allowed)
-            routing_type = ROUTING_LOCAL;
-            digit_count = LOCAL_COUNT; // account for the the leading zero
-            break;
+            // the above is wrong and didn't consider that 1 is dialed ahead of area codes
+
+            // routing_type = ROUTING_LOCAL;
+            // digit_count = LOCAL_COUNT; // account for the the leading zero
+            // break;
           }
         case '1':
           if(digit1 == '0' && digit2 == '0'){
@@ -254,9 +258,11 @@ bool determine_routing(){
             break;
           } else {
             // third dialed digit is 1 when first, and second was a 2-9, calling local new area code-like exchange prefix
-            routing_type = ROUTING_LOCAL;
-            digit_count = LOCAL_COUNT; // account for the the leading zero
-            break;
+            // the above is wrong and does consider that "1" is dialed first for long distance numbers
+
+            // routing_type = ROUTING_LOCAL;
+            // digit_count = LOCAL_COUNT; // account for the the leading zero
+            // break;
           }
           break;
       }
@@ -637,7 +643,6 @@ void loop()
           break;
         } 
         else if(KeypadHandler::char_in_chars(ch, "#C")){
-          // load a ST tone into the digit buffer so it plays later on autodial
           determine_oprouting(); // this looks at number of digits
           top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
         } 
