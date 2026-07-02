@@ -106,7 +106,7 @@ void add_digit(char ch){
   }
 }
 
-// TODO think through the routing again, keeping in mine that "1" is dialed first for area codes
+// TODO think through the routing again, keeping in mind that "1" is dialed first for area codes
 bool determine_routing(){
   bool error = false;
   char digit1;
@@ -231,8 +231,8 @@ bool determine_routing(){
 
             // routing_type = ROUTING_LOCAL;
             // digit_count = LOCAL_COUNT; // account for the the leading zero
-            // break;
           }
+          break;
         case '1':
           if(digit1 == '0' && digit2 == '0'){
             // third dialed digit is 1 when first was 0 and second was 0, error (this case should be caught and handled before the third digit)

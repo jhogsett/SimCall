@@ -127,6 +127,9 @@ void Tones::blocking_dial_sequence(const char * digits, bool use_opkeys, int dig
   }
 
   size_t length = strlen(digits);
+  if(length < 1){
+    return;
+  }
 
   // NOTE to reviewers: it's OK to disregard validation for the return value of key_from_char
   // because, since this is a telephone simulator, there will always be "*" and "#" keys and the digits!!

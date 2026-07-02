@@ -10,7 +10,7 @@
 class Tones
 {
 public:
-    Tones(MD_AD9833 * pDevice1, MD_AD9833 * pDevice2, float silent_freq, KeypadHandler * _pkeypad_handler);
+    Tones(MD_AD9833 * pDevice1, MD_AD9833 * pDevice2, float silent_freq, KeypadHandler * pkeypad_handler);
 
     void begin();
 
