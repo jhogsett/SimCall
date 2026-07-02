@@ -113,6 +113,8 @@ void insert_digit(char ch, bool skip_if_present=true){
     }  
   }
   Serial.println(digits);
+  digits[num_digits] = '\0';
+  num_digits++;
 }
 
 bool determine_routing(){
@@ -278,6 +280,9 @@ bool determine_routing(){
 // 1 44 444 44444
 // 800 555 1212
 void determine_oprouting(){
+  if(num_digits == 0){
+    return;
+  }
   // for international calls assume 11 more more digits
   // for regular calls assume less (domestic long distance won't include the intitial "1")
   if(num_digits >= 11)
@@ -602,8 +607,6 @@ void loop()
         } else if(KeypadHandler::char_in_chars(ch, "D")){
           tones.blocking_dial_sequence(digits, true);
           determine_oprouting(); // this looks at number of digits
-          // insert_digit('*');
-          // add_digit('#');
           top_level_state = TOP_LEVEL_STATE_OPROUTING_DISCONNECT;
         } 
         else if(KeypadHandler::char_in_chars(ch, "0123456789*#")){
